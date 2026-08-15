@@ -103,13 +103,20 @@ def _groq(prompt: str) -> str:
                   "GROQ_MODELS",
                   "openai/gpt-oss-120b,openai/gpt-oss-20b,llama-3.3-70b-versatile"
               ).split(",") if m.strip()])
+    import time as _time
     last_exc = None
-    for model in models:
-        try:
-            return _groq_with(model, prompt)
-        except Exception as exc:
-            last_exc = exc
-            logger.warning("Groq model %s failed: %s", model, exc)
+    for attempt in range(3):
+        for model in models:
+            try:
+                return _groq_with(model, prompt)
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("Groq model %s failed: %s", model, exc)
+                if "429" in str(exc) or "TOO_MANY_REQUESTS" in str(exc):
+                    # V3.7.5: rate-limit storm — back off once per round, then
+                    # walk the ladder again (quota often recovers in ~30s).
+                    _time.sleep(25 * (attempt + 1))
+                break  # switch to fallback provider chain
     raise last_exc
 
 
@@ -136,7 +143,7 @@ def _gemini_with(model: str, prompt: str) -> str:
 def _gemini(prompt: str) -> str:
     """V2.2.2: model ladder — older flash models get deprecated over time."""
     models = [m.strip() for m in os.environ.get(
-        "GEMINI_MODELS", "gemini-2.5-flash,gemini-2.0-flash").split(",") if m.strip()]
+        "GEMINI_MODELS", "gemini-2.5-flash-lite,gemini-3-flash,gemini-2.5-flash").split(",") if m.strip()]
     last_exc = None
     for model in models:
         try:

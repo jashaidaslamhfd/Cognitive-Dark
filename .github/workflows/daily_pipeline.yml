@@ -146,6 +146,14 @@ jobs:
           # Bring in remote changes; on conflict keep OUR freshly generated data
           git pull --no-rebase --autostash origin "$GITHUB_REF_NAME" 2>/dev/null \
             || git pull --no-rebase --autostash -X ours origin "$GITHUB_REF_NAME" || true
+          # V3.7.5: unmerged (still-conflicting) files = resolve by keeping OUR
+          # freshly generated data; NEVER leave them blocking the commit.
+          if [ -n "$(git ls-files --unmerged 2>/dev/null)" ]; then
+            git ls-files --unmerged | awk '{print $4}' | sort -u | while read -r f; do
+              git checkout --ours "$f" 2>/dev/null && git add "$f" || true
+            done
+            echo "⚠️ Resolved $(git ls-files --unmerged 2>/dev/null | wc -l) lingering unmerged paths via --ours"
+          fi
           # NEVER commit conflict markers or invalid JSON — corruption = RED run
           if grep -lE '^(<<<<<<<|>>>>>>>)' data/*.json data/*.jsonl 2>/dev/null; then
             echo "::error::Conflict markers in data/*.json — run scripts/repair_data_files.py --apply first."
