@@ -1,10 +1,10 @@
 # ☕ Daily Brief — Creator's Morning Notes
 
-*Monday, 2026-08-10* (auto-generated, insaani soch mein)
+*Saturday, 2026-08-15* (auto-generated, insaani soch mein)
 
 ## Kal kya hua
-- Last run: 2026-08-10T08:09 → **youtube:FAIL; facebook:FAIL; instagram:FAIL**
-- Youtube: subs 0.3%, watch_hours 0.0%, shorts_views 0.0%
+- Last run: 2026-08-15T15:32 → **?**
+- Youtube: subs 0.4%, watch_hours 0.0%, shorts_views 0.0%
 - Facebook: followers 10.3%, minutes 0.0%
 - Instagram: followers 0.2%
 
@@ -16,8 +16,7 @@
 
 ## Intuition (kyun kya)
 
-- 🔥 con_artists strong formula chala raha hai (mean 1.50, n=7) — double down: aaj isi pillar par 2 videos banao.
-- 🏆 Wins ka streak hai — kuch mat badlo, bas chalta rakho.
+- 🔄 cults kharab hai (-0.49) — pivot: aaj koi bilkul naya pillar try karo (variety = naya data).
 
 ## Aaj avoid karna
 
