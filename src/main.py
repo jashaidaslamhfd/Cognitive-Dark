@@ -142,6 +142,21 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
         except Exception as e:
             logger.warning("Brain decision failed: %s", e)
 
+    # ── TREND-SPIKER: live public-feed spike override (opt-in) ──
+    if not pillar and not topic:
+        try:
+            from trend_spiker import get_trend_spike
+            _recent = [str(t.get("title", "") or "") for t in
+                       (ml.data.get("videos") or [])[-8:]]
+            _spike = get_trend_spike(exclude=_recent)
+            if _spike:
+                topic = _spike["topic"]
+                pillar = None  # bandit picks the arm for the spike topic
+                logger.info("📈 TREND-SPIKER OVERRIDE: topic=%s (%s)",
+                            topic, ", ".join(_spike.get("sources", [])))
+        except Exception as e:
+            logger.warning("Trend-Spiker skipped: %s", e)
+
     # ── 1-4. BUILD + 🛂 INDEPENDENT RELEASE GATE (V3.5) ─────────────
     # Har department ka apna independent guard (script, hook, voice,
     # caption, video, seo, ctr, views) + USASupervisor aakhri judge.

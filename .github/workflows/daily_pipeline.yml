@@ -13,11 +13,14 @@ on:
         type: boolean
         default: false
   schedule:
-    # V2.5.1: 4 daily windows ≈ 7a/12p/5p/8p ET (Aug=EDT, UTC-4)
-    - cron: "0 11 * * *"
-    - cron: "0 16 * * *"
-    - cron: "0 21 * * *"
-    - cron: "0 0 * * *"
+    # V3.7: peak-aligned 4 windows = 10:30a/12:30p/6:30p/9:30p ET
+    #   (brunch scroll, lunch peak, evening peak, wind-down peak)
+    #   --repeat 2 per run + MIN_POST_GAP_HOURS=3 keep ALL output inside
+    #   max-activity windows (12-3p & 7-10p local = Shorts research peaks).
+    - cron: "30 14 * * *"
+    - cron: "30 16 * * *"
+    - cron: "30 22 * * *"
+    - cron: "30 1 * * *"
 
 permissions:
   contents: write
@@ -88,6 +91,11 @@ jobs:
           # + supervisor pass hona zaroori; warn = report only (emergency).
           GATE_MODE: "strict"
           GATE_MAX_REPAIRS: "2"
+          # V3.7: Trend-Spiker — live public-feed (Google Trends RSS + YouTube
+          # trending) spike override when a genuinely hot ON-BRAND topic is
+          # detected; safety filters never relax (on-brand + no duplicates +
+          # 2 independent signals minimum).
+          TREND_SPIKER_ENABLED: "true"
         # V2.1: no `|| echo` — a crashed pipeline must turn the run RED so it
         # is noticed, instead of reporting success while uploading nothing.
         # --repeat 2: produce 2 videos per run for daily volume consistency.

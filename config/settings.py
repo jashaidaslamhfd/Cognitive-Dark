@@ -317,7 +317,7 @@ MIN_POST_GAP_HOURS = float(os.environ.get("MIN_POST_GAP_HOURS", "3.0"))
 # ─────────────────────────────────────────────────────────────
 # Music
 # ─────────────────────────────────────────────────────────────
-MUSIC_VOLUME = float(os.environ.get("MUSIC_VOLUME", "0.05"))
+MUSIC_VOLUME = float(os.environ.get("MUSIC_VOLUME", "0.18"))
 MUSIC_DIR = ROOT / "assets" / "music"
 
 # ─────────────────────────────────────────────────────────────

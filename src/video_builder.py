@@ -34,7 +34,7 @@ logger = logging.getLogger("video_builder")
 
 WIDTH, HEIGHT = 1080, 1920
 FPS = 30
-MUSIC_VOLUME = float(os.environ.get("MUSIC_VOLUME", "0.05"))
+MUSIC_VOLUME = float(os.environ.get("MUSIC_VOLUME", "0.18"))
 
 from config.settings import MUSIC_DIR, OUTPUT_DIR, TMP_DIR, USA_STYLE, VIDEO_THREADS
 

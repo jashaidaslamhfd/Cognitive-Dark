@@ -78,17 +78,30 @@ class FacebookUploader(BasePlatform):
         sess = r.json()
         session_id = sess.get("upload_session_id")
 
-        # 2) TRANSFER — V2.2.4: /video_reels only accepts {START, FINISH}
-        # (no transfer phase). Send the whole file with FINISH in one go;
-        # oversized files fail fast and the /videos ladder catches them.
+        # 2) TRANSFER — Graph now requires an explicit transfer step with the
+        # file and byte-range offsets BEFORE finish. Sending the file inside
+        # FINISH fails with (#100) "Missing parameter: video_id".
         with open(video_path, "rb") as fh:
             r = requests.post(
                 url,
-                data={"access_token": token, "upload_phase": "finish",
+                data={"access_token": token, "upload_phase": "transfer",
                       "upload_session_id": session_id,
-                      "description": description[:6300]},
-                files={"source": (os.path.basename(video_path), fh, "video/mp4")},
+                      "start_offset": "0",
+                      "end_offset": str(size)},
+                files={"video_file_chunk": (os.path.basename(video_path), fh,
+                                           "video/mp4")},
                 timeout=600)
+        if r.status_code >= 400:
+            raise RuntimeError(f"reels transfer HTTP {r.status_code}: {r.text[:400]}")
+
+        # 3) FINISH — finalize the session (no file, session id only);
+        # description/title attach to the reel at finish time.
+        r = requests.post(
+            url,
+            data={"access_token": token, "upload_phase": "finish",
+                  "upload_session_id": session_id,
+                  "description": description[:6300]},
+            timeout=600)
         if r.status_code >= 400:
             raise RuntimeError(f"reels finish HTTP {r.status_code}: {r.text[:400]}")
         return r.json()
