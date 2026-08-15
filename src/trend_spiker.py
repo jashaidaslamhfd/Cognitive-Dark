@@ -161,7 +161,7 @@ def get_trend_spike(exclude: list[str] | None = None) -> dict | None:
     multi = {k: v for k, v in hits.items()
              if v["src"].startswith("google_trends+")}
     if multi:
-        chosen_key, chosen = next(iter(multi.items()))
+        _, chosen = next(iter(multi.items()))
         n = len(multi)
         sources = ["google_trends", "youtube_trending"]
     else:
