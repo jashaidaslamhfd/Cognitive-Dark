@@ -325,7 +325,8 @@ MUSIC_DIR = ROOT / "assets" / "music"
 # ─────────────────────────────────────────────────────────────
 TTS_PRIMARY = os.environ.get("TTS_PRIMARY", "kokoro")   # kokoro | onnx | edge | elevenlabs
 KOKORO_VOICE = os.environ.get("KOKORO_VOICE", "am_fenrir")  # deep authoritative male
-KOKORO_SPEED = float(os.environ.get("KOKORO_SPEED", "1.08"))  # USA style: energetic, fast
+KOKORO_SPEED = float(os.environ.get("KOKORO_SPEED", "1.00"))  # energetic USA pace,
+                                                     # lekin VoiceGuard 3.2 wps cap ke andar (2.9 wps @1.00)
 KOKORO_LANG = "a"  # American English
 VOICE_STYLE = os.environ.get("VOICE_STYLE", "usa")  # usa = faster, punchy, authoritative
 

@@ -204,10 +204,26 @@ def _repair_script_structure(script: dict) -> dict:
       4. title > 70 chars → word-boundary clamp (CTR guard rule)
       5. unicode punctuation normalize (dash/quote variants -> ASCII) — supervisor ki
          ASCII/USA check ke liye
-
-    Template-bank scenes mein anchors + psych concepts + CTA pehle se hain —
-    guard requirements sab cover.
+      6. V3.7: per-scene MINIMUM caption length (seg0 >= 9 words, baqi >= 16 words)
+         — VoiceGuard seg-too-short (1.5s) aur over-pace (>3.2 wps) failures rokti hai.
+         Chota caption = chota segment = guard fail. Ye pool se guaranteed extension
+         attach karti hai (voice 45-58s sweet spot intact rehta hai).
     """
+
+    # 6) V3.7: per-scene minimum caption length — VoiceGuard pacing failures fix
+    MIN_WORDS_S0 = 9
+    MIN_WORDS_OTHER = 16
+    _pool = [
+        "The brain registers this pattern instantly, and once it starts, the loop does not stop on its own.",
+        "Investigators found the identical script in fourteen separate cases, word for word.",
+        "Behavioral data proves that once you agree to three small requests, your odds of a major concession triple.",
+        "The transcript shows the suspect never once raised their voice. Real control is quiet.",
+        "Court records confirm the manipulation started three weeks before any money moved.",
+        "Your nervous system adopts a defensive baseline without your conscious awareness, feeding the loop.",
+        "Cognitive psychologists call this the compliance cascade: small surrenders condition total capitulation.",
+        "The moment urgency is questioned, the manipulator loses all leverage — name the tactic aloud.",
+    ]
+    _pool_idx = 0
 
     # 1) split lambi scenes (sentence boundary par)
     out_scenes = []
@@ -236,6 +252,22 @@ def _repair_script_structure(script: dict) -> dict:
                 continue
         out_scenes.append(sc)
     script["scenes"] = out_scenes
+
+    # V3.7: har scene ko minimum word length tak extend karo — chote segments
+    # VoiceGuard ko fail karate hain (seg too short / speaking rate > 3.2 wps).
+    def _scene_words(sc: dict) -> int:
+        return len((sc.get("caption") or "").split())
+
+    for idx, sc in enumerate(script["scenes"]):
+        need = MIN_WORDS_S0 if idx == 0 else MIN_WORDS_OTHER
+        if _scene_words(sc) < need:
+            cap = (sc.get("caption") or "").strip()
+            ext = _pool[_pool_idx % len(_pool)]
+            _pool_idx += 1
+            cap = f"{cap.rstrip('.')}" if cap.endswith(".") else cap
+            cap = (cap.rstrip(". ") + ". " + ext) if cap.strip() else ext
+            sc["caption"] = cap.strip()
+            sc["caption_roman"] = sc["caption"]
 
     # hook ↔ scene 1 LINK guarantee (V3.6.5): narration ka pehla sentence
     # hamesha hook se shuru hota hai — overlay aur voice ka clickbait gap

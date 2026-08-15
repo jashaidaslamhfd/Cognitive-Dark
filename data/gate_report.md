@@ -1,7 +1,7 @@
 # 🛂 Release Gate Report — YOUTUBE
 
 - **Decision:** 🔴 HELD  (grade **F**, mode strict)
-- **Time:** 2026-08-15T11:52:18.628277+00:00
+- **Time:** 2026-08-15T12:25:52.133579+00:00
 
 | Guard | Status | Reason |
 |---|---|---|
@@ -107,7 +107,7 @@
   "video": {
     "path": "output/tmp/selftest_video.mp4",
     "exists": true,
-    "size_bytes": 2067236,
+    "size_bytes": 2066855,
     "duration_s": 5.9,
     "width": 1080,
     "height": 1920,
