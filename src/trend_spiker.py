@@ -24,7 +24,6 @@ Safety rules (never relaxed):
 import logging
 import os
 import re
-from typing import Dict, List, Optional
 
 import requests
 
@@ -63,8 +62,8 @@ _HEADERS = {
 }
 
 
-def _request_public(url: str, *, params: Optional[Dict] = None,
-                    timeout: int = 15) -> Optional[requests.Response]:
+def _request_public(url: str, *, params: dict | None = None,
+                    timeout: int = 15) -> requests.Response | None:
     try:
         resp = requests.get(url, params=params, headers=_HEADERS, timeout=timeout)
         if resp.status_code != 200:
@@ -75,7 +74,7 @@ def _request_public(url: str, *, params: Optional[Dict] = None,
         return None
 
 
-def _google_trends_entries() -> List[str]:
+def _google_trends_entries() -> list[str]:
     """Google Trends daily RSS - public, no key."""
     resp = _request_public("https://trends.google.com/trending/rss",
                            params={"geo": "US"})
@@ -86,7 +85,7 @@ def _google_trends_entries() -> List[str]:
     return [re.sub(r"<[^>]+>", "", t).strip() for t in items[1:]][:15]
 
 
-def _youtube_trending_titles() -> List[str]:
+def _youtube_trending_titles() -> list[str]:
     """YouTube trending page - public HTML with public watch counts."""
     resp = _request_public("https://www.youtube.com/feed/trending")
     if resp is None:
@@ -105,7 +104,7 @@ def _signal_strength(matches: int, sources: int) -> bool:
     return sources >= 2 or matches >= 2
 
 
-def _topic_record(topic: str, sources: List[str], rank: int) -> Dict:
+def _topic_record(topic: str, sources: list[str], rank: int) -> dict:
     return {
         "topic": topic,
         "source": "trend_spike",
@@ -118,7 +117,7 @@ def _topic_record(topic: str, sources: List[str], rank: int) -> Dict:
     }
 
 
-def get_trend_spike(exclude: Optional[List[str]] = None) -> Optional[Dict]:
+def get_trend_spike(exclude: list[str] | None = None) -> dict | None:
     """Return a spike topic if one exists, else None.
 
     The pipeline calls this once per run. None means "no override - use the
@@ -136,7 +135,7 @@ def get_trend_spike(exclude: Optional[List[str]] = None) -> Optional[Dict]:
                     "bandit topic used.")
         return None
 
-    hits: Dict[str, Dict] = {}
+    hits: dict[str, dict] = {}
     for raw in gt + yt:
         key = raw.strip().lower()
         if not key or len(key) < 6:
@@ -166,7 +165,7 @@ def get_trend_spike(exclude: Optional[List[str]] = None) -> Optional[Dict]:
         n = len(multi)
         sources = ["google_trends", "youtube_trending"]
     else:
-        chosen_key, chosen = next(iter(hits.items()))
+        _chosen_key, chosen = next(iter(hits.items()))
         n = len(hits)
         sources = ["google_trends"] if chosen["in_gt"] else ["youtube_trending"]
     if not _signal_strength(n, 2 if multi else 1):
