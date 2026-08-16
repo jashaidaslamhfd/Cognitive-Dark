@@ -293,3 +293,7 @@ scripts/fetch_metrics.py    — analytics sync → ML rewards
 - **Free APIs** (Pexels/Pixabay/Edge-TTS) can rate-limit — the fallback chain handles it.
 - **MoviePy is pinned to 1.0.3** on purpose; don't upgrade blindly (2.x broke the API).
 - Long-form (10-15 min) is the next roadmap item for the watch-hours path.
+
+
+## Storage Optimization
+- Diagnostic dumps and audit logs are retained as 90-day GitHub Actions artifacts instead of inflating git repository history.
