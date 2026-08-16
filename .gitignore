@@ -24,3 +24,8 @@ data/*.bak
 !assets/music/*.wav
 !assets/music/*.mp3
 !data/llm_state.json
+
+
+# Audit and diagnostic dumps (avoid git bloat)
+data/*audit*
+data/*diag*
