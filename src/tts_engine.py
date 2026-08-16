@@ -31,6 +31,37 @@ VOICES_URL = ("https://github.com/thewh1teagle/kokoro-onnx/releases/download/"
               "model-files-v1.0/voices-v1.0.bin")
 
 KOKORO_VOICE = os.environ.get("KOKORO_VOICE", "am_fenrir")
+# 2026-08-17: weighted voice rotation pool. Fenrir stays the brand voice (~60%
+# of videos) for consistency; a small pool of adult EN voices rotates so the
+# channel doesn't sound like one machine narrator. KOKORO_VOICE remains the
+# deterministic override; set VOICE_ROTATE="auto" to enable the pool. Pool is
+# "voice1:w1,voice2:w2,..." (weights normalised internally).
+_VOICES_ENV = os.environ.get("KOKORO_VOICE_POOL", "am_fenrir:60,am_adam:15,am_michael:15,af_heart:10")
+VOICES = [v.split(":")[0] for v in _VOICES_ENV.split(",") if v.split(":")[0]]
+_WEIGHTS = [float(v.split(":")[1]) for v in _VOICES_ENV.split(",") if ":" in v]
+if len(VOICES) != len(_WEIGHTS):
+    _WEIGHTS = [1 / len(VOICES)] * len(VOICES) if VOICES else [1.0]
+_total_w = sum(_WEIGHTS) or 1.0
+_WEIGHTS = [w / _total_w for w in _WEIGHTS]
+_VOICE_ROTATE = os.environ.get("VOICE_ROTATE", "off").strip().lower()
+
+
+def _resolve_voice(topic: str = "", attempt: int = 0) -> str:
+    """Deterministic-but-varied voice: brand voice usually, pool occasionally.
+
+    The same topic always gets the same voice (idempotent across retries);
+    different topics see variety. """
+    if _VOICE_ROTATE != "auto" or not VOICES:
+        return KOKORO_VOICE
+    import hashlib as _h
+    h = int(_h.sha256(f"{topic}".encode()).hexdigest(), 16)
+    r = (h % 10_000) / 10_000.0
+    acc = 0.0
+    for v, w in zip(VOICES, _WEIGHTS):
+        acc += w
+        if r <= acc:
+            return v
+    return VOICES[0]
 # V2.1: default matches config.settings / README USA-style 1.08x (V2 drifted
 # to 0.98x here → narration sounded slow & low-energy unless env was set).
 # Single source of truth: config.settings; env var KOKORO_SPEED overrides.
@@ -76,7 +107,10 @@ def _kokoro_onnx_tts(text: str, out_path: str) -> float:
         model, voices = _ensure_kokoro_files()
         _kokoro_pipe = Kokoro(model, voices)
 
-    samples, sr = _kokoro_pipe.create(text, voice=KOKORO_VOICE,
+    voice = _resolve_voice()
+    if voice != KOKORO_VOICE:
+        logger.info("🎙️  rotating narrator voice: %s → %s", KOKORO_VOICE, voice)
+    samples, sr = _kokoro_pipe.create(text, voice=voice,
                                       speed=KOKORO_SPEED, lang="en-us")
     if len(samples) < sr:  # <1s = likely failed/empty
         raise RuntimeError("Kokoro produced <1s of audio")

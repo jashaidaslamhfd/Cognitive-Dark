@@ -86,6 +86,10 @@ jobs:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           TTS_PRIMARY: "onnx"
           KOKORO_VOICE: "am_fenrir"
+          # 2026-08-17: weighted voice rotation — fenrir brand voice ~60%,
+          # adult pool rotates so the channel never sounds like one machine.
+          VOICE_ROTATE: "auto"
+          KOKORO_VOICE_POOL: "am_fenrir:60,am_adam:15,am_michael:15,af_heart:10"
           KOKORO_MODEL_DIR: "data/models/kokoro"
           # V3.5 Independent Release Gate — strict (default) = sab guards
           # + supervisor pass hona zaroori; warn = report only (emergency).

@@ -103,6 +103,25 @@ def _score(clip: dict) -> float:
     return s
 
 
+def _probe_valid(path: Path) -> bool:
+    """ffprobe gate (2026-08-17): corrupted stock MP4s crash the MoviePy render
+    later (same root cause Neuro-Somaa hit). Verify duration/streams NOW and
+    reject a broken file so the ranked fallback loop tries the next clip."""
+    try:
+        import subprocess as _sp
+        res = _sp.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+            capture_output=True, text=True, timeout=20,
+        )
+        if res.returncode != 0:
+            return False
+        dur = float(res.stdout.strip())
+        return dur > 0.5
+    except Exception:
+        return False
+
+
 def _download(url: str, dest: Path) -> Path:
     if dest.exists() and dest.stat().st_size > MIN_CLIP_BYTES:
         return dest
@@ -117,6 +136,11 @@ def _download(url: str, dest: Path) -> Path:
         tmp.unlink(missing_ok=True)
         raise RuntimeError(f"clip too small: {size} bytes")
     os.replace(tmp, dest)
+    # 2026-08-17: ffprobe validation gate — Pexels/Pixabay occasionally serve
+    # truncated/corrupt MP4s that pass the size check but crash the render.
+    if not _probe_valid(dest):
+        dest.unlink(missing_ok=True)
+        raise RuntimeError(f"clip failed ffprobe validation: {dest}")
     return dest
 
 
