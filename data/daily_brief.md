@@ -1,11 +1,11 @@
 # ☕ Daily Brief — Creator's Morning Notes
 
-*Monday, 2026-08-17* (auto-generated, insaani soch mein)
+*Friday, 2026-08-21* (auto-generated, insaani soch mein)
 
 ## Kal kya hua
-- Last run: 2026-08-17T15:21 → **?**
+- Last run: 2026-08-21T03:33 → **?**
 - Youtube: subs 0.4%, watch_hours 0.0%, shorts_views 0.0%
-- Facebook: followers 10.3%, minutes 0.0%
+- Facebook: followers 10.4%, minutes 0.0%
 - Instagram: followers 0.2%
 
 ## Aaj ka plan (creator ki tarah)

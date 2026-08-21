@@ -1,27 +1,28 @@
 {
   "platform": "instagram",
   "mode": "strict",
-  "released": false,
-  "grade": "F",
-  "generated_at": "2026-08-17T16:07:37.209084+00:00",
+  "released": true,
+  "grade": "B",
+  "generated_at": "2026-08-21T04:29:30.337759+00:00",
   "verdicts": [
     {
       "guard": "script",
       "status": "PASS",
-      "reason": "137 words (~65.2s), 6 scenes, anchors+concepts+CTA sab present",
+      "reason": "130 words (~61.9s), 6 scenes, anchors+concepts+CTA sab present",
       "evidence": {
         "scenes": 6,
-        "words": 137,
-        "est_s": 65.2,
+        "words": 130,
+        "est_s": 61.9,
         "fluff_hits": [],
         "anchors": [
           "case",
           "transcript",
-          "cia"
+          "declassified"
         ],
         "concepts": [
-          "compliance",
-          "psycholog"
+          "confirmation bias",
+          "scarcity",
+          "behavioral"
         ],
         "has_cta": true,
         "hook_link": 1.0,
@@ -35,13 +36,11 @@
       "status": "WARN",
       "reason": "no question/number — command-style hook",
       "evidence": {
-        "hook": "Watch what they say when you say no",
-        "words": 8,
-        "chars": 35,
+        "hook": "How One Ad Manipulated a Country",
+        "words": 6,
+        "chars": 32,
         "strong": [
-          "watch",
-          "what",
-          "when"
+          "how"
         ],
         "cliche": [],
         "question": false,
@@ -55,64 +54,64 @@
     },
     {
       "guard": "voice",
-      "status": "FAIL",
-      "reason": "seg 0: speaking rate 3.65 wps (US target 1.6-3.2); seg 5: speaking rate 3.45 wps (US target 1.6-3.2)",
+      "status": "PASS",
+      "reason": "6 segments, 49.8s, all audible, US pace OK",
       "evidence": {
         "segments": 6,
         "missing": 0,
-        "total_s": 52.3,
+        "total_s": 49.8,
         "measured": [
           {
             "seg": 0,
-            "duration_s": 3.84,
-            "rms": 4262.4,
-            "silence_ratio": 0.195,
-            "wps": 3.65,
-            "text_words": 14
+            "duration_s": 4.053,
+            "rms": 4111.8,
+            "silence_ratio": 0.22,
+            "wps": 2.96,
+            "text_words": 12
           },
           {
             "seg": 1,
-            "duration_s": 8.128,
-            "rms": 3971.6,
-            "silence_ratio": 0.172,
-            "wps": 2.34,
-            "text_words": 18
+            "duration_s": 9.493,
+            "rms": 3917.1,
+            "silence_ratio": 0.184,
+            "wps": 2.11,
+            "text_words": 20
           },
           {
             "seg": 2,
-            "duration_s": 13.504,
-            "rms": 3969.8,
-            "silence_ratio": 0.181,
-            "wps": 2.44,
-            "text_words": 33
+            "duration_s": 9.301,
+            "rms": 3910.9,
+            "silence_ratio": 0.15,
+            "wps": 2.37,
+            "text_words": 22
           },
           {
             "seg": 3,
-            "duration_s": 10.24,
-            "rms": 4005.1,
-            "silence_ratio": 0.21,
-            "wps": 2.44,
-            "text_words": 25
+            "duration_s": 10.539,
+            "rms": 4021.1,
+            "silence_ratio": 0.175,
+            "wps": 2.94,
+            "text_words": 31
           },
           {
             "seg": 4,
-            "duration_s": 8.491,
-            "rms": 3780.0,
-            "silence_ratio": 0.176,
-            "wps": 2.12,
-            "text_words": 18
+            "duration_s": 8.128,
+            "rms": 4007.7,
+            "silence_ratio": 0.184,
+            "wps": 2.83,
+            "text_words": 22
           },
           {
             "seg": 5,
-            "duration_s": 8.107,
-            "rms": 4001.6,
-            "silence_ratio": 0.16,
-            "wps": 3.45,
-            "text_words": 29
+            "duration_s": 8.32,
+            "rms": 4047.0,
+            "silence_ratio": 0.198,
+            "wps": 2.64,
+            "text_words": 23
           }
         ]
       },
-      "fix": "Voice regenerate karo — har scene ke liye real TTS output hona chahiye (kokoro/edge), silence nahi.",
+      "fix": "",
       "independent": true
     },
     {
@@ -124,32 +123,32 @@
         "rows": [
           {
             "scene": 0,
-            "words": 14,
+            "words": 12,
             "caption_matches_voice": true
           },
           {
             "scene": 1,
-            "words": 18,
+            "words": 20,
             "caption_matches_voice": true
           },
           {
             "scene": 2,
-            "words": 33,
+            "words": 22,
             "caption_matches_voice": true
           },
           {
             "scene": 3,
-            "words": 25,
+            "words": 31,
             "caption_matches_voice": true
           },
           {
             "scene": 4,
-            "words": 18,
+            "words": 22,
             "caption_matches_voice": true
           },
           {
             "scene": 5,
-            "words": 29,
+            "words": 23,
             "caption_matches_voice": true
           }
         ],
@@ -163,21 +162,21 @@
     {
       "guard": "video",
       "status": "PASS",
-      "reason": "1080x1920 54.9s 30.0fps audio=yes",
+      "reason": "1080x1920 52.4s 30.0fps audio=yes",
       "evidence": {
         "path": "/home/runner/work/Cognitive-Dark/Cognitive-Dark/output/final_video.mp4",
         "exists": true,
-        "size_bytes": 28625380,
-        "duration_s": 54.9,
+        "size_bytes": 27623548,
+        "duration_s": 52.4,
         "width": 1080,
         "height": 1920,
         "fps": 30.0,
         "has_video": true,
         "has_audio": true,
-        "video_bitrate": 3971196,
+        "video_bitrate": 4017235,
         "codec": "h264",
-        "scene_files": 7,
-        "avg_scene_s": 7.84
+        "scene_files": 6,
+        "avg_scene_s": 8.73
       },
       "fix": "",
       "independent": true
@@ -188,8 +187,8 @@
       "reason": "[instagram] title/desc/tags/CTAs 2026-rules OK",
       "evidence": {
         "platform": "instagram",
-        "title_len": 35,
-        "desc_len": 565,
+        "title_len": 32,
+        "desc_len": 555,
         "hashtags": 20
       },
       "fix": "",
@@ -202,8 +201,8 @@
       "evidence": {
         "score": 0.53,
         "threshold": 0.45,
-        "title": "Watch what they say when you say no",
-        "hook": "Watch what they say when you say no",
+        "title": "How One Ad Manipulated a Country",
+        "hook": "How One Ad Manipulated a Country",
         "power_first3": true,
         "keyword": false,
         "number": false,
@@ -214,8 +213,8 @@
         "double_punct": false,
         "emoji": 0,
         "pipes": 0,
-        "shared_stems": 6,
-        "title_len": 35
+        "shared_stems": 5,
+        "title_len": 32
       },
       "fix": "",
       "independent": true
@@ -228,9 +227,9 @@
         "platform": "instagram",
         "n_real": 0,
         "real_mean": 0.0,
-        "arm_key": "stoic_defense::red_flag::afternoon",
+        "arm_key": "mind_control_history::warning::morning",
         "prior_n": 3,
-        "prior_mean": 0.7,
+        "prior_mean": 0.85,
         "recent_credited": 0,
         "zero_view_streak": 0,
         "quarantined": false,
@@ -241,13 +240,12 @@
     }
   ],
   "supervisor": {
-    "released": false,
-    "grade": "F",
+    "released": true,
+    "grade": "B",
     "violations": [],
     "notes": [
-      "copy vs youtube: 43% distinct ✓",
-      "copy vs facebook: 53% distinct ✓",
-      "HOLD: 1 guard fail + 0 supervisor violations"
+      "copy vs youtube: 42% distinct ✓",
+      "copy vs facebook: 48% distinct ✓"
     ],
     "checks": {
       "independence": {
@@ -264,7 +262,7 @@
       },
       "publish_window": {
         "ok": true,
-        "note": "publish 14:00 ET"
+        "note": "publish 11:00 ET"
       },
       "siblings": {
         "youtube": "distinct",
@@ -272,9 +270,9 @@
       }
     },
     "guard_summary": {
-      "pass": 6,
+      "pass": 7,
       "warn": 1,
-      "fail": 1
+      "fail": 0
     }
   }
 }
