@@ -17,20 +17,22 @@ YouTube Shorts:
 
 Facebook Reels:
   • title <= 150; description 200-6300
-  • hook first-line; comment/share CTA present
-  • 4-8 hashtags
+  • first-line context and a genuine question/checklist prompt
+  • no more than 5 relevant hashtags
+  • no known engagement-bait phrase
 
 Instagram Reels:
   • title <= 55; description 150-2200
-  • save/share CTA present ("save this"/"send this"/"tag")
-  • 10-20 hashtags
+  • save-value or case-specific reflection prompt
+  • no more than 5 relevant hashtags
+  • no known engagement-bait phrase
 """
 
 from __future__ import annotations
 
 import re
 
-from config.settings import PILLARS
+from config.settings import META_ALLOW_ENGAGEMENT_BAIT, META_MAX_HASHTAGS, PILLARS
 from guards.base import BaseGuard
 
 YT_KW_FALLBACK = ["psychology", "mind", "cult", "scam", "coercion",
@@ -38,8 +40,16 @@ YT_KW_FALLBACK = ["psychology", "mind", "cult", "scam", "coercion",
                   "interrogation", "lie detection", "detection", "body language"]
 DISCLAIMER_HINTS = ["educational", "not a substitute", "protect yourself"]
 
-FB_CTA_RE = re.compile(r"\b(comment|what would you|agree|share|drop it)\b", re.I)
-IG_CTA_RE = re.compile(r"\b(save this|save it|bookmark|send this|tag someone)\b", re.I)
+FB_CTA_RE = re.compile(
+    r"\b(comment|what would you|which|what would you verify|reasoning|"
+    r"checklist|explain|add)\b", re.I)
+IG_CTA_RE = re.compile(
+    r"\b(save (?:this|it)|checklist|review|which detail|verify first|"
+    r"add your reasoning)\b", re.I)
+BAIT_RE = re.compile(
+    r"(?:algorithm\s+(?:won't|will not)\s+show|one\s+like\s+equals|"
+    r"like\s+(?:this|it)\s+to\s+(?:get|reach)|if\s+this\s+hits|"
+    r"comment\s+[\"']?safe[\"']?|we(?:'re| are)\s+counting)", re.I)
 STUFF_RE = re.compile(r"\|")
 
 
@@ -102,9 +112,11 @@ class SEOGuard(BaseGuard):
         if not (200 <= len(desc) <= 6300):
             issues.append(f"description {len(desc)} chars (200-6300)")
         if not FB_CTA_RE.search(desc):
-            issues.append("no comment/share CTA (FB ka #1 engagement signal)")
-        if not (4 <= hashtags <= 8):
-            warns.append(f"hashtags {hashtags} (4-8 sweet spot)")
+            issues.append("no genuine question/checklist prompt")
+        if BAIT_RE.search(desc) and not META_ALLOW_ENGAGEMENT_BAIT:
+            issues.append("engagement-bait phrase detected")
+        if hashtags > META_MAX_HASHTAGS:
+            issues.append(f"hashtags {hashtags} (>{META_MAX_HASHTAGS} Meta limit)")
 
     def _ig(self, pkg: dict, issues: list, warns: list, ev: dict) -> None:
         title = pkg.get("title") or ""
@@ -117,9 +129,11 @@ class SEOGuard(BaseGuard):
         if not (150 <= len(desc) <= 2200):
             issues.append(f"description {len(desc)} chars (150-2200)")
         if not IG_CTA_RE.search(desc):
-            issues.append("no save/share CTA — saves IG ka top signal hai")
-        if not (10 <= hashtags <= 20):
-            warns.append(f"hashtags {hashtags} (10-20 sweet spot)")
+            issues.append("no save-value or case-specific reflection prompt")
+        if BAIT_RE.search(desc) and not META_ALLOW_ENGAGEMENT_BAIT:
+            issues.append("engagement-bait phrase detected")
+        if hashtags > META_MAX_HASHTAGS:
+            issues.append(f"hashtags {hashtags} (>{META_MAX_HASHTAGS} Meta limit)")
 
     def check(self, payload: dict) -> object:
         platform = payload.get("platform") or ""

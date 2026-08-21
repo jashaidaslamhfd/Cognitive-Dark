@@ -74,14 +74,15 @@ def test_score_script_weak_script():
     assert q["score"] < 0.5, q
 
 
-def test_cta_pair_always_engaging():
-    """cta_pair hamesha like/comment/save trigger de (compulsion engine)."""
-    from compulsion_cta import cta_pair, has_engagement
+def test_cta_pair_is_useful_and_not_bait():
+    """CTA prompts retain a closing action without incentivized engagement."""
+    from compulsion_cta import contains_bait, cta_pair, has_engagement
     seen = set()
     for _ in range(60):
         pair = cta_pair()
         text = " ".join(pair)
         assert has_engagement(text), f"no engage word: {text}"
+        assert not contains_bait(text), f"engagement bait detected: {text}"
         # variation — har baar same na ho
         seen.add(text[:30])
     assert len(seen) >= 8, f"too repetitive: {len(seen)} unique"
@@ -95,11 +96,12 @@ def test_build_engaging_last_scene():
     assert scene["emotion"] == "revelatory"
 
 
-def test_llm_cta_instructions_present():
+def test_llm_cta_instructions_are_policy_safe():
     from compulsion_cta import llm_cta_instructions
-    txt = llm_cta_instructions()
-    assert "reciprocity" in txt and "algorithm-altruism" in txt
-    assert "please like and subscribe" in txt  # explicitly forbidden
+    txt = llm_cta_instructions().lower()
+    assert "save" in txt and "evidence-led" in txt
+    assert "algorithm won't show" not in txt
+    assert "artificial like threshold" in txt
 
 
 def test_yt_package_always_has_keyword():

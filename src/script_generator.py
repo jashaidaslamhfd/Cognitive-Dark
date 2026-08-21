@@ -49,7 +49,7 @@ TONE & STYLE (HUMAN DOCUMENTARY FEEL):
 6. MONETIZATION SAFETY: Strictly educational/documentary framing. We decode deception to PROTECT viewers, never to teach malicious harm.
 7. TARGET DURATION: 48-58 seconds (approx 110-145 spoken words total across scenes).
 8. CINEMATIC VISUAL PROMPTS: Generate specific, moody, documentary b-roll search terms (e.g., "bank vault cctv dark", "redacted fbi document desk", "shadowed interrogation room", "smartphone notification late night", "rain reflection city neon dark") NOT generic smiling stock models.
-9. ENGAGEMENT COMPULSION (critical): Beat 4 ends with a NATURAL but compelling like ask using ONE of these psychology hooks (varied, never robotic, never "please like and subscribe"): (a) reciprocity — "this took 9 hours to research, one like is earned"; (b) algorithm-altruism — "hit like or the algorithm won't show this to someone who needs it"; (c) identity — "if you're the kind of person who opens their eyes, like this"; (d) cliffhanger — "part 2 drops if this hits 10k likes"; (e) challenge — "comment what you'd do in this position". Add a short comment question 50% of the time. Keep it 1-2 punchy sentences, authentic documentary voice.
+9. POLICY-SAFE CLOSING (critical): Beat 4 ends with one natural utility or reflection prompt. Invite viewers to save a genuinely useful checklist, answer a question directly related to the case, or follow for another evidence-led episode. Never claim that likes unlock reach, never request an artificial like threshold, never use identity pressure, and never ask viewers to comment a keyword solely to manufacture engagement. Keep it to 1-2 punchy sentences in an authentic documentary voice.
 
 OUTPUT — ONLY valid JSON, no markdown formatting:
 {
@@ -445,17 +445,16 @@ def _template_script(pillar: dict, hook_style: str) -> dict:
         "Remember: legitimate authorities will never demand instant secrecy or immediate wire transfers. Pause, breathe, and verify independently.",
     ]
 
-    # V3.3: COMPULSION CTA — audience ko like karna majboor (psychology).
-    # Template CTAs ab compulsion_cta.cta_pair() se aate hain — har video
-    # alag principle (algorithm-altruism, reciprocity, identity, challenge).
+    # Policy-safe utility/reflection CTA. The compatibility module name
+    # remains compulsion_cta, but its prompt bank must not incentivize
+    # likes, comments, shares, or follows with reach or identity pressure.
     try:
         from compulsion_cta import cta_pair
         _cta_lines = cta_pair()
         cta = " ".join(_cta_lines)
     except Exception:
-        cta = ("If this pattern just clicked for you, hit like — it shows "
-               "this to someone who needs it. And comment: have you seen "
-               "this play out? I read everything.")
+        cta = ("Save this checklist if you want to review the pattern later. "
+               "Which detail would you have verified first?")
 
     setup = random.choice(narrative_setups.get(pillar.get("key"), narrative_setups["con_artists"]))
     proof = random.choice(forensic_proofs)
@@ -666,8 +665,8 @@ Write it now — valid JSON only."""
             hook_score = best_score
             logger.info("Hook overridden with strong documented hook (score %.2f)",
                         hook_score)
-    # V3.3: CTA repair — compulsion CTA (psychology like-bait) append agar
-    # script mein like/comment/save trigger nahi hai.
+    # CTA repair — append a useful or genuinely conversational closing prompt
+    # when the generated script has no closing action.
     _full = " ".join(sc.get("caption", "") for sc in script.get("scenes", [])).lower()
     _has_cta = bool(re.search(
         r"\b(like|comment|follow|save|share|subscribe|hit)\b", _full))
@@ -675,7 +674,7 @@ Write it now — valid JSON only."""
         try:
             from compulsion_cta import build_engaging_last_scene
             script["scenes"].append(build_engaging_last_scene(pillar.get("key")))
-            logger.info("CTA repair: compulsion engagement scene appended")
+            logger.info("CTA repair: policy-safe closing scene appended")
         except Exception:
             pass
 

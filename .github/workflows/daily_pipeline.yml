@@ -95,6 +95,9 @@ jobs:
           # + supervisor pass hona zaroori; warn = report only (emergency).
           GATE_MODE: "strict"
           GATE_MAX_REPAIRS: "2"
+          # Meta safety: relevant low-volume hashtags and no engagement bait.
+          META_MAX_HASHTAGS: "5"
+          META_ALLOW_ENGAGEMENT_BAIT: "0"
           # V3.7: Trend-Spiker — live public-feed (Google Trends RSS + YouTube
           # trending) spike override when a genuinely hot ON-BRAND topic is
           # detected; safety filters never relax (on-brand + no duplicates +

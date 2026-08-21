@@ -17,8 +17,8 @@ import re
 
 from guards.base import BaseGuard
 
-POWER = {"stop", "never", "secret", "why", "how", "warning", "truth",
-         "danger", "trap", "hidden", "exposed", "signs", "scam", "cult",
+POWER = {"stop", "never", "secret", "why", "how", "what", "when", "would",
+         "warning", "truth", "danger", "trap", "hidden", "exposed", "signs", "scam", "cult",
          "confess", "escape", "control", "money", "brainwash", "mind",
          "watch", "look", "if"}
 KW = ["psychology", "coercion", "cult", "con", "mind", "brainwash", "scam",

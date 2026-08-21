@@ -315,6 +315,16 @@ MONETIZATION = {
 MIN_POST_GAP_HOURS = float(os.environ.get("MIN_POST_GAP_HOURS", "3.0"))
 
 # ─────────────────────────────────────────────────────────────
+# Meta policy safeguards
+# ─────────────────────────────────────────────────────────────
+# Keep Meta captions concise and relevant; do not use hashtag volume as a
+# substitute for audience or originality. The current safe default is five.
+META_MAX_HASHTAGS = int(os.environ.get("META_MAX_HASHTAGS", "5"))
+META_ALLOW_ENGAGEMENT_BAIT = (
+    os.environ.get("META_ALLOW_ENGAGEMENT_BAIT", "0").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+# ─────────────────────────────────────────────────────────────
 # Music
 # ─────────────────────────────────────────────────────────────
 MUSIC_VOLUME = float(os.environ.get("MUSIC_VOLUME", "0.18"))

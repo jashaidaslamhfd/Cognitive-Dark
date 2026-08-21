@@ -15,7 +15,7 @@ USA viral-channel conventions applied:
 import logging
 import random
 
-from config.settings import PILLARS
+from config.settings import META_MAX_HASHTAGS, PILLARS
 
 logger = logging.getLogger("seo")
 
@@ -27,21 +27,21 @@ POWER_WORDS = ["Secret", "Instantly", "Never", "Shocking", "Hidden", "Exposed",
 
 PLATFORM_HASHTAGS = {
     "youtube": ["#psychology", "#truecrime", "#mindcontrol"],
-    "facebook": ["#psychology", "#truecrime", "#mindcontrol", "#scams",
-                 "#gaslighting", "#stoicism", "#cults", "#psychologyfacts"],
-    "instagram": ["#psychology", "#truecrime", "#mindcontrol", "#manipulation",
-                  "#gaslighting", "#coercivecontrol", "#stoicism", "#scamawareness",
-                  "#mentalhealth", "#selfimprovement", "#bodylanguage", "#emotionalintelligence",
-                  "#toxicrelationships", "#psychologytips", "#humanbehavior",
-                  "#interrogation", "#brainwashing", "#factsvideo", "#foryou", "#viral"],
+    # Meta currently recommends relevant, low-volume hashtags; keep the
+    # default package at five or fewer and select a pillar-specific subset.
+    "facebook": ["#psychology", "#scamawareness", "#coercivecontrol",
+                 "#behavioralscience", "#selfdefense"],
+    "instagram": ["#psychology", "#scamawareness", "#coercivecontrol",
+                  "#behavioralscience", "#selfdefense"],
 }
 
-CTA_IG = ["Save this for your next conversation.", "Save this — you'll need it.",
-          "Tag someone who needs to see this.", "Send this to a friend who settles too easily."]
-CTA_FB = ["What would you add? Drop it in the comments.",
-          "Agree or disagree? Let's talk in the comments.",
-          "Share this with someone who needs to hear it.",
-          "Which sign surprised you most? Comment below."]
+CTA_IG = ["Save this checklist for your next high-pressure conversation.",
+          "Save this case file so you can review the warning signs later.",
+          "Which detail would you verify first? Add your reasoning below."]
+CTA_FB = ["What would you verify first in this situation? Explain below.",
+          "Which detail changed your view of the case? Let us know.",
+          "Which sign was easiest to miss? Share your reasoning below.",
+          "What would you add to this practical checklist?"]
 
 EDUCATIONAL_DISCLAIMER = (
     "⚠️ For educational purposes only — learn to recognize and protect yourself. "
@@ -310,12 +310,15 @@ def build_platform_package(script: dict, platform: str,
     else:
         title = _title(script, platform)
 
+    hashtags = PLATFORM_HASHTAGS.get(platform, [])
+    if platform in {"facebook", "instagram"}:
+        hashtags = hashtags[:META_MAX_HASHTAGS]
     return {
         "platform": platform,
         "title": title,
         "description": _description(script, platform, durations),
         "tags": _tags(script, platform),
-        "hashtags": PLATFORM_HASHTAGS.get(platform, []),
+        "hashtags": hashtags,
         "hook": script.get("hook", ""),
     }
 

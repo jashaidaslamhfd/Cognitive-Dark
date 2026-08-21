@@ -558,3 +558,57 @@ def test_ctr_guard_watch_hook_passes():
         "script": {"hook": "Watch what they say when you say no"},
     })
     assert v.status in ("PASS", "WARN"), v.reason
+
+
+# ── 10. Meta policy-safe Instagram packaging ─────────────────────
+
+
+def test_seo_guard_ig_passes_policy_safe_package():
+    from guards.seo_guard import SEOGuard
+
+    pkg = {
+        "title": "What Nobody Tells You About Coercion",
+        "description": (
+            "Save this checklist for your next high-pressure conversation. "
+            "This evidence-led case explains how coercion works, what to verify "
+            "before acting, and how to protect your judgment. "
+            "For educational purposes only — learn to recognize patterns and "
+            "protect yourself. "
+            "#psychology #coercivecontrol #selfdefense"
+        ),
+        "tags": [],
+        "hashtags": ["psychology", "coercivecontrol", "selfdefense"],
+    }
+    verdict = SEOGuard().check({"platform": "instagram", "package": pkg})
+    assert verdict.status == "PASS", verdict.reason
+
+
+def test_seo_guard_meta_rejects_bait_and_excess_hashtags():
+    from guards.seo_guard import SEOGuard
+
+    pkg = {
+        "title": "What Nobody Tells You About Coercion",
+        "description": (
+            "Like this to get the video to someone who needs it. "
+            "Save the case file for later review. "
+            "Educational purposes only — protect yourself."
+        ),
+        "tags": [],
+        "hashtags": ["one", "two", "three", "four", "five", "six"],
+    }
+    verdict = SEOGuard().check({"platform": "instagram", "package": pkg})
+    assert verdict.status == "FAIL", verdict.reason
+    assert "engagement-bait" in verdict.reason
+    assert "hashtags" in verdict.reason
+
+
+def test_ctr_guard_accepts_natural_instagram_question_title():
+    from guards.ctr_guard import CTRGuard
+
+    pkg = {"title": "What Nobody Tells You About Coercion"}
+    verdict = CTRGuard().check({
+        "platform": "instagram",
+        "package": pkg,
+        "script": {"hook": "What Nobody Tells You About Coercion"},
+    })
+    assert verdict.status == "PASS", verdict.reason

@@ -57,7 +57,7 @@ def _resolve_voice(topic: str = "", attempt: int = 0) -> str:
     h = int(_h.sha256(f"{topic}".encode()).hexdigest(), 16)
     r = (h % 10_000) / 10_000.0
     acc = 0.0
-    for v, w in zip(VOICES, _WEIGHTS):
+    for v, w in zip(VOICES, _WEIGHTS, strict=True):
         acc += w
         if r <= acc:
             return v
