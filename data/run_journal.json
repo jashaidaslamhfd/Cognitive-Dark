@@ -1,29 +1,13 @@
 {
   "current": {
-    "run_id": "20260821T153436",
+    "run_id": "20260822T030057",
     "kind": "short_pipeline",
-    "started": "2026-08-21T15:34:36.436109+00:00",
+    "started": "2026-08-22T03:00:57.191936+00:00",
     "status": "success",
-    "finished": "2026-08-21T16:03:43.393271+00:00",
-    "note": "youtube:OK; facebook:OK; instagram:FAIL"
+    "finished": "2026-08-22T04:15:43.081757+00:00",
+    "note": "youtube:FAIL; facebook:FAIL; instagram:FAIL"
   },
   "history": [
-    {
-      "run_id": "20260804T161309",
-      "kind": "short_pipeline",
-      "started": "2026-08-04T16:13:09.700631+00:00",
-      "status": "success",
-      "finished": "2026-08-04T16:14:20.853258+00:00",
-      "note": ""
-    },
-    {
-      "run_id": "20260804T182731",
-      "kind": "short_pipeline",
-      "started": "2026-08-04T18:27:31.713426+00:00",
-      "status": "success",
-      "finished": "2026-08-04T18:30:24.444971+00:00",
-      "note": ""
-    },
     {
       "run_id": "20260804T191644",
       "kind": "short_pipeline",
@@ -407,6 +391,22 @@
       "status": "success",
       "finished": "2026-08-21T16:03:43.393271+00:00",
       "note": "youtube:OK; facebook:OK; instagram:FAIL"
+    },
+    {
+      "run_id": "20260822T023255",
+      "kind": "short_pipeline",
+      "started": "2026-08-22T02:32:55.781492+00:00",
+      "status": "success",
+      "finished": "2026-08-22T03:00:57.190906+00:00",
+      "note": "youtube:OK; facebook:OK; instagram:FAIL"
+    },
+    {
+      "run_id": "20260822T030057",
+      "kind": "short_pipeline",
+      "started": "2026-08-22T03:00:57.191936+00:00",
+      "status": "success",
+      "finished": "2026-08-22T04:15:43.081757+00:00",
+      "note": "youtube:FAIL; facebook:FAIL; instagram:FAIL"
     }
   ]
 }

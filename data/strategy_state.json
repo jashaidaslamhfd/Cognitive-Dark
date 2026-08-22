@@ -2,7 +2,7 @@
   "epsilon": 0.25,
   "kokoro_speed": 1.08,
   "pillar_weights": {
-    "cults": 0.629,
+    "cults": 0.628,
     "coercive_control": 1.06,
     "con_artists": 1.125,
     "interrogation": 1.119,
@@ -18,7 +18,7 @@
   },
   "min_gap_hours": 4.0,
   "momentum": "slump",
-  "updated_at": "2026-08-21T15:34:36.445870+00:00",
+  "updated_at": "2026-08-22T03:00:57.204055+00:00",
   "last_mean_reward": 0.0,
   "last_engagement": 0.0,
   "decision_log": [
@@ -91,6 +91,20 @@
     },
     {
       "ts": "2026-08-21T15:34:36.445757+00:00",
+      "changes": [
+        "pillar weights updated from real performance",
+        "❄️ slump detected — fresh exploration (epsilon→0.25, daily caps {'youtube': 2, 'facebook': 2, 'instagram': 2})"
+      ]
+    },
+    {
+      "ts": "2026-08-22T02:32:55.819639+00:00",
+      "changes": [
+        "pillar weights updated from real performance",
+        "❄️ slump detected — fresh exploration (epsilon→0.25, daily caps {'youtube': 2, 'facebook': 2, 'instagram': 2})"
+      ]
+    },
+    {
+      "ts": "2026-08-22T03:00:57.203925+00:00",
       "changes": [
         "pillar weights updated from real performance",
         "❄️ slump detected — fresh exploration (epsilon→0.25, daily caps {'youtube': 2, 'facebook': 2, 'instagram': 2})"
