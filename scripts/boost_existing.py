@@ -209,6 +209,11 @@ def main():
     ap.add_argument("--limit", type=int, default=200, help="max videos scan (default 200)")
     args = ap.parse_args()
     apply = args.apply
+    if apply:
+        confirmed = os.environ.get("CONFIRM_BOOST_APPLY", "0").strip().lower()
+        if confirmed not in {"1", "true", "yes", "on"}:
+            print("❌ --apply blocked: set CONFIRM_BOOST_APPLY=1 after reviewing the dry-run report")
+            return 2
 
     yt = get_service()
     ids = all_upload_ids(yt)[-args.limit:]

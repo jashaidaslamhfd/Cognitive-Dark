@@ -26,6 +26,7 @@ operation auto-saves (V2 lost end-of-run rewards because save() was skipped).
 """
 
 import contextlib
+import fcntl
 import hashlib
 import json
 import logging
@@ -80,8 +81,10 @@ def current_day_part() -> str:
 class LearningSystem:
     """Online learning core: UCB1 bandit + attribution + guards + health."""
 
-    def __init__(self, store_path: Path = None, cfg: dict = None):
+    def __init__(self, store_path: Path = None, cfg: dict = None,
+                 persist: bool = True):
         self.store_path = Path(store_path or ML_STORE_PATH)
+        self.persist = bool(persist)
         self.cfg = dict(LEARNING)
         if cfg:
             self.cfg.update(cfg)
@@ -162,27 +165,34 @@ class LearningSystem:
         return {}
 
     def save(self) -> None:
-        """Persist atomically, keeping a last-known-good .bak first.
-
-        If the store is broken we REFUSE to overwrite it (that would destroy
-        the only evidence + recoverable memory) and post no data at all.
-        """
+        """Persist atomically unless this instance is explicitly read-only."""
+        if not self.persist:
+            return
         if not self.store_ok:
             logger.critical(
                 "Refusing to overwrite a corrupted ML store — run "
                 "scripts/repair_data_files.py first. Nothing was written.")
             return
         self.store_path.parent.mkdir(parents=True, exist_ok=True)
-        if self.store_path.exists():
-            try:
-                shutil.copy2(self.store_path,
-                             self.store_path.with_suffix(self.store_path.suffix + ".bak"))
-            except OSError as exc:
-                logger.warning("Could not write .bak backup: %s", exc)
-        tmp = self.store_path.with_suffix(".tmp")
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(self.data, fh, ensure_ascii=False, indent=2)
-        os.replace(tmp, self.store_path)
+        lock_path = self.store_path.with_suffix(self.store_path.suffix + ".lock")
+        with open(lock_path, "a+", encoding="utf-8") as lock:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            if self.store_path.exists():
+                try:
+                    shutil.copy2(
+                        self.store_path,
+                        self.store_path.with_suffix(self.store_path.suffix + ".bak"),
+                    )
+                except OSError as exc:
+                    logger.warning("Could not write .bak backup: %s", exc)
+            tmp = self.store_path.with_name(
+                f"{self.store_path.name}.{os.getpid()}.tmp")
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(self.data, fh, ensure_ascii=False, indent=2)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.replace(tmp, self.store_path)
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
     # ── append-only event log (the "diary" — memory survives any crash) ──
     @property
@@ -191,11 +201,18 @@ class LearningSystem:
         return self.store_path.with_suffix(self.store_path.suffix + ".events.jsonl")
 
     def _append_event(self, etype: str, **payload) -> None:
-        """Append one immutable event line. Never raises (memory is best-effort)."""
+        """Append one immutable event line unless this instance is read-only."""
+        if not self.persist:
+            return
         try:
             line = {"ts": _now_iso(), "type": etype, **payload}
+            self.events_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.events_path, "a", encoding="utf-8") as fh:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
                 fh.write(json.dumps(line, ensure_ascii=False) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
         except OSError as exc:
             logger.warning("Could not append event %s: %s", etype, exc)
 
@@ -290,6 +307,9 @@ class LearningSystem:
                 elif t == "claim":
                     data["publish_claims"].setdefault(ev["platform"], {})[ev["iso"]] = {
                         "run_id": ev.get("run_id"), "ts": ts}
+                elif t == "claim_release":
+                    data.get("publish_claims", {}).get(ev.get("platform"), {}).pop(
+                        ev.get("iso"), None)
                 elif t == "health_failure":
                     h = data["health"].setdefault(ev["platform"],
                                                   {"failures": 0, "healthy": True})
@@ -655,8 +675,10 @@ class LearningSystem:
             "platform": platform, "quality_bonus": quality_bonus,
         })
         self._trim("reward_log")
-        self._append_event("reward", arm=arm_key, reason=self._sanitize_reason(reason),
-                           w=abs(w), platform=platform)
+        self._append_event(
+            "reward", arm=arm_key, reason=self._sanitize_reason(reason),
+            w=round(total, 6), base_weight=round(abs(w), 6),
+            quality_bonus=round(quality_bonus, 6), platform=platform)
         self.save()
         if quality_bonus > 0:
             logger.info("REWARD(+quality) %s → %s (%.1f + %.2f bonus) platform=%s",
@@ -747,8 +769,19 @@ class LearningSystem:
         a = self.data["attribution"].get(vid)
         if not a:
             return 0.0
-        reward, breakdown = self.reward_from_metrics(metrics)
         platform = a.get("platform")
+        views_status = str(metrics.get("views_status", "measured")).lower()
+        if views_status != "measured":
+            a["metrics"] = metrics
+            a["metrics_status"] = views_status
+            self._append_event("metrics_unavailable", video_id=vid,
+                               status=views_status, platform=platform)
+            self.save()
+            logger.info("⏸️  %s:%s metrics unavailable (%s) — no credit or penalty",
+                        platform, vid[:12], views_status)
+            return 0.0
+
+        reward, breakdown = self.reward_from_metrics(metrics)
 
         if a.get("credited"):
             old_reward = float(a.get("reward", 0.0) or 0.0)
@@ -773,6 +806,7 @@ class LearningSystem:
 
         a["credited"] = True
         a["metrics"] = metrics
+        a["metrics_status"] = "measured"
         a["reward"] = reward
         a["breakdown"] = breakdown
         a["credited_at"] = _now_iso()
@@ -909,7 +943,7 @@ class LearningSystem:
         return True, "claimed"
 
     def release_claim(self, platform: str, publish_at) -> None:
-        """Free a claim when the upload failed (don't hold a slot we didn't use)."""
+        """Free a claim when upload failed and record the compensating event."""
         if isinstance(publish_at, str):
             try:
                 publish_at = datetime.fromisoformat(publish_at)
@@ -918,8 +952,11 @@ class LearningSystem:
         if publish_at.tzinfo is None:
             publish_at = publish_at.replace(tzinfo=timezone.utc)
         iso = publish_at.astimezone(timezone.utc).isoformat()
-        self.data.get("publish_claims", {}).get(platform, {}).pop(iso, None)
-        self.save()
+        removed = self.data.get("publish_claims", {}).get(platform, {}).pop(iso, None)
+        if removed is not None:
+            self._append_event("claim_release", platform=platform, iso=iso,
+                               run_id=removed.get("run_id"))
+            self.save()
 
     # ── dedup & variation ──
     def dedup_guard(self, script_text: str, hook: str = "") -> dict:

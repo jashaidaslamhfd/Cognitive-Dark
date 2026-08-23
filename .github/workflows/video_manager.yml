@@ -34,14 +34,23 @@ on:
         required: false
         type: boolean
         default: false
-      user_token:
-        description: "OPTIONAL: USER token (pages_show_list+instagram_basic) — se saare pages scan honge aur pata chalega kis page se IG linked hai. Graph API Explorer se banao."
+      confirm_apply:
+        description: "boost_existing: apply live changes only when true"
         required: false
-        type: string
-        default: ""
+        type: boolean
+        default: false
+      confirm_delete:
+        description: "social_cleanup: delete only when true after reviewing the list"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+
+concurrency:
+  group: cognitive-dark-writer
+  cancel-in-progress: false
 
 jobs:
   manage:
@@ -73,20 +82,24 @@ jobs:
         run: |
           python scripts/youtube_shorts_repair.py ${{ inputs.fix_public && '--fix-public' || '' }}
 
-      - name: BOOST existing content (unstick private + SEO + playlist)
+      - name: BOOST existing content — dry-run report
         if: ${{ inputs.action == 'boost_existing' }}
         env:
           YOUTUBE_CREDENTIALS: ${{ secrets.YOUTUBE_CREDENTIALS || secrets.YOUTUBE_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
-        run: |
-          echo "::group::DRY-RUN REPORT"
-          python scripts/boost_existing.py || true
-          echo "::endgroup::"
-          echo "::group::APPLY BOOST"
-          python scripts/boost_existing.py --apply || true
-          echo "::endgroup::"
+        run: python scripts/boost_existing.py
+
+      - name: BOOST existing content — apply after explicit confirmation
+        if: ${{ inputs.action == 'boost_existing' && inputs.confirm_apply }}
+        env:
+          YOUTUBE_CREDENTIALS: ${{ secrets.YOUTUBE_CREDENTIALS || secrets.YOUTUBE_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+          CONFIRM_BOOST_APPLY: ${{ inputs.confirm_apply && '1' || '0' }}
+        run: python scripts/boost_existing.py --apply
 
       - name: Existing content performance report (YT/FB/IG)
         if: ${{ inputs.action == 'boost_report' }}
@@ -99,16 +112,15 @@ jobs:
           FB_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN || secrets.FB_ACCESS_TOKEN }}
           IG_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_USER_ID || secrets.IG_BUSINESS_ACCOUNT_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN || secrets.FACEBOOK_ACCESS_TOKEN || secrets.IG_ACCESS_TOKEN }}
-        run: python scripts/boost_report.py || true
+        run: python scripts/boost_report.py
 
       - name: Commit human-layer data (brief, replies) — conflict-safe
         if: ${{ inputs.action == 'engage_comments' || inputs.action == 'human_brief' }}
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git config user.name "Coercion Files Brain"
           git config user.email "brain@coercionfiles.ai"
-          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME" 2>/dev/null \
-            || git pull --no-rebase --autostash -X ours origin "$GITHUB_REF_NAME" || true
+          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME"
           if grep -lE '^(<<<<<<<|>>>>>>>)' data/*.json data/*.jsonl 2>/dev/null; then
             echo "::error::Conflict markers found"; exit 1
           fi
@@ -119,7 +131,6 @@ jobs:
             git commit -m "☕ Human layer: daily brief / replies [skip ci]"
             git push
           fi
-        continue-on-error: true
 
       - name: Engagement doctor (zero-like alerts + ML feedback)
         if: ${{ inputs.action == 'engagement_audit' }}
@@ -128,7 +139,7 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: |
-          python scripts/analyze_engagement.py || true
+          python scripts/analyze_engagement.py
 
       - name: Comment engagement engine (fetch + draft human replies)
         if: ${{ inputs.action == 'engage_comments' }}
@@ -142,7 +153,7 @@ jobs:
           FB_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN || secrets.FB_ACCESS_TOKEN }}
           IG_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_USER_ID || secrets.IG_BUSINESS_ACCOUNT_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN || secrets.FACEBOOK_ACCESS_TOKEN || secrets.IG_ACCESS_TOKEN }}
-        run: python scripts/engage_comments.py || true
+        run: python scripts/engage_comments.py
 
       - name: Daily brief (human creator notes)
         if: ${{ inputs.action == 'human_brief' }}
@@ -182,7 +193,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
-        run: python scripts/check_llm_keys.py || true
+        run: python scripts/check_llm_keys.py
 
       - name: Instagram / Facebook diagnostic (linkage, token, scopes, app mode)
         if: ${{ inputs.action == 'ig_diagnose' }}
@@ -200,15 +211,15 @@ jobs:
         env:
           FB_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN || secrets.FB_ACCESS_TOKEN }}
           IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN || secrets.FACEBOOK_ACCESS_TOKEN || secrets.IG_ACCESS_TOKEN }}
-          USER_TOKEN: ${{ inputs.user_token }}
-        run: python scripts/find_ig_link.py || true
+          USER_TOKEN: ${{ secrets.USER_TOKEN }}
+        run: python scripts/find_ig_link.py
 
       - name: IG publish capability probe (real API test)
         if: ${{ inputs.action == 'ig_diagnose' }}
         env:
           IG_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_USER_ID || secrets.IG_BUSINESS_ACCOUNT_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN || secrets.FACEBOOK_ACCESS_TOKEN || secrets.IG_ACCESS_TOKEN }}
-        run: python scripts/test_ig_upload.py || true
+        run: python scripts/test_ig_upload.py
 
       - name: Run 3-platform audit
         if: ${{ inputs.action == 'audit' }}
@@ -237,4 +248,5 @@ jobs:
           FB_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN || secrets.FB_ACCESS_TOKEN }}
           IG_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_USER_ID || secrets.IG_BUSINESS_ACCOUNT_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN || secrets.FACEBOOK_ACCESS_TOKEN || secrets.IG_ACCESS_TOKEN }}
+          CONFIRM_SOCIAL_DELETE: ${{ inputs.confirm_delete && '1' || '0' }}
         run: python scripts/social_manager.py "${{ inputs.action == 'social_cleanup' && 'cleanup' || 'list' }}"

@@ -71,9 +71,14 @@ class StrategyState:
 
 
 class StrategyDirector:
-    def __init__(self, ml=None, state_path: Path = STATE_PATH):
+    def __init__(self, ml=None, state_path: Path = STATE_PATH,
+                 notes_path: Path = None):
         self.ml = ml
         self.state_path = Path(state_path)
+        if notes_path is None:
+            notes_path = (NOTES_PATH if self.state_path == STATE_PATH
+                          else self.state_path.with_name("strategy_notes.md"))
+        self.notes_path = Path(notes_path)
         self.state = self._load()
 
     # ── persistence ──
@@ -291,9 +296,10 @@ class StrategyDirector:
         ]
         out = "\n".join(lines)
         try:
-            tmp = NOTES_PATH.with_suffix(".tmp")
+            self.notes_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.notes_path.with_suffix(".tmp")
             tmp.write_text(out, encoding="utf-8")
-            os.replace(tmp, NOTES_PATH)
+            os.replace(tmp, self.notes_path)
         except OSError as exc:
             logger.warning("notes write failed: %s", exc)
 

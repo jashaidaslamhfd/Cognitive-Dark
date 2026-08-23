@@ -8,8 +8,11 @@ Flow:
 Modes (env GATE_MODE):
   strict (default) — koi bhi guard FAIL/UNKNOWN ya supervisor violation
                      = video HELD (upload nahi)
-  warn             — report banti hai, block nahi (emergency escape)
-  off              — gate skip
+  warn             — report banti hai, publishing STILL blocked by default
+  off              — report bypass requested, publishing STILL blocked by default
+
+Publishing bypass additionally requires ALLOW_UNSAFE_PUBLISH=1 and should
+only be used in a separately protected operator-approved environment.
 
 Fail-CLOSED: guard agar measure hi na kar sake (UNKNOWN) to video block
 hoti hai — "pata nahi" kabhi "pass" nahi hota.
@@ -108,9 +111,20 @@ class ReleaseGate:
                             generated_at=datetime.now(timezone.utc).isoformat())
 
         if self.mode == "off":
-            report.released = True
-            report.grade = "OFF"
-            report.supervisor = {"released": True, "note": "GATE_MODE=off"}
+            unsafe_allowed = os.environ.get("ALLOW_UNSAFE_PUBLISH", "0").strip().lower() in {
+                "1", "true", "yes", "on"
+            }
+            report.released = unsafe_allowed
+            report.grade = "OFF" if unsafe_allowed else "F"
+            report.supervisor = {
+                "released": unsafe_allowed,
+                "violations": [] if unsafe_allowed else [
+                    "GATE_MODE=off requires ALLOW_UNSAFE_PUBLISH=1"
+                ],
+                "note": "GATE_MODE=off",
+            }
+            report.written = self._write_reports(report)
+            self._log(report)
             return report
 
         clean = self._sanitize(payload)
@@ -131,8 +145,17 @@ class ReleaseGate:
 
         if self.mode == "strict":
             report.released = bool(sup.get("released"))
-        else:  # warn mode: report but never block
-            report.released = True
+        else:
+            unsafe_allowed = os.environ.get("ALLOW_UNSAFE_PUBLISH", "0").strip().lower() in {
+                "1", "true", "yes", "on"
+            }
+            report.released = bool(unsafe_allowed and sup.get("released"))
+            if not unsafe_allowed:
+                sup.setdefault("violations", []).append(
+                    f"GATE_MODE={self.mode} is audit-only; publishing requires "
+                    "ALLOW_UNSAFE_PUBLISH=1"
+                )
+                report.supervisor = sup
         report.grade = sup.get("grade", "F")
 
         report.written = self._write_reports(report)
@@ -151,16 +174,21 @@ class ReleaseGate:
         }
         self.report_dir.mkdir(parents=True, exist_ok=True)
         try:
-            jp = self.report_dir / "gate_report.json"
-            jp.write_text(json.dumps(data, indent=2, ensure_ascii=False),
-                          encoding="utf-8")
-            written.append(str(jp))
+            jp = self.report_dir / f"gate_report_{report.platform}.json"
+            serialized = json.dumps(data, indent=2, ensure_ascii=False)
+            jp.write_text(serialized, encoding="utf-8")
+            latest = self.report_dir / "gate_report.json"
+            latest.write_text(serialized, encoding="utf-8")
+            written.extend([str(jp), str(latest)])
         except OSError as exc:
             logger.warning("gate json report write failed: %s", exc)
         try:
-            mp = self.report_dir / "gate_report.md"
-            mp.write_text(self._markdown(report, data), encoding="utf-8")
-            written.append(str(mp))
+            mp = self.report_dir / f"gate_report_{report.platform}.md"
+            markdown = self._markdown(report, data)
+            mp.write_text(markdown, encoding="utf-8")
+            latest = self.report_dir / "gate_report.md"
+            latest.write_text(markdown, encoding="utf-8")
+            written.extend([str(mp), str(latest)])
         except OSError as exc:
             logger.warning("gate md report write failed: %s", exc)
         return written

@@ -157,7 +157,8 @@ def _evict_old_cache() -> None:
         pass
 
 
-def get_clip_for_scene(scene_idx: int, scene: dict, rank: int = 0) -> dict:
+def get_clip_for_scene(scene_idx: int, scene: dict, rank: int = 0,
+                       cache_dir: Path = None) -> dict:
     """Fetch the `rank`-th best clip for a scene (rank 0 = best).
 
     V2.1: the `rank` offset is what gives every scene DISTINCT cuts. V2 always
@@ -194,12 +195,14 @@ def get_clip_for_scene(scene_idx: int, scene: dict, rank: int = 0) -> dict:
         raise RuntimeError("no unique clips for query: " + query)
 
     # Walk from the requested rank downward until one downloads cleanly
+    cache_root = Path(cache_dir or CLIP_CACHE)
     for idx in range(rank, rank + len(ordered)):
         clip = ordered[idx % len(ordered)]
-        dest = CLIP_CACHE / clip["_cache_key"]
+        dest = cache_root / clip["_cache_key"]
         try:
             path = _download(clip["url"], dest)
             return {"path": str(path), "source": clip["provider"],
+                    "source_id": clip.get("id"), "source_url": clip.get("url"),
                     "width": clip["width"], "height": clip["height"],
                     "query": query}
         except Exception as exc:
@@ -208,13 +211,17 @@ def get_clip_for_scene(scene_idx: int, scene: dict, rank: int = 0) -> dict:
     raise RuntimeError(f"could not download any clip for: {query}")
 
 
-def prepare_clips(scenes: list, per_scene: int = 3) -> list:
+def prepare_clips(scenes: list, per_scene: int = 3,
+                  cache_dir: Path = None) -> list:
     """Fetch `per_scene` distinct clips for every scene (for fast cuts).
 
     Returns a list (one entry per scene) of lists of clip dicts.
     Falls back to distinct procedural visuals per scene when providers fail.
     """
-    _evict_old_cache()
+    if cache_dir is None:
+        _evict_old_cache()
+    else:
+        Path(cache_dir).mkdir(parents=True, exist_ok=True)
     results = []
     for i, scene in enumerate(scenes):
         scene_clips = []
@@ -222,7 +229,7 @@ def prepare_clips(scenes: list, per_scene: int = 3) -> list:
         # V2.1: request DISTINCT cuts via rank offset (rank k → k-th best clip)
         for rank in range(per_scene):
             try:
-                r = get_clip_for_scene(i, scene, rank=rank)
+                r = get_clip_for_scene(i, scene, rank=rank, cache_dir=cache_dir)
                 key = (r.get("source"), r.get("width"), r.get("height"), r.get("path"))
                 if key not in seen_ids:
                     scene_clips.append(r)
@@ -237,6 +244,8 @@ def prepare_clips(scenes: list, per_scene: int = 3) -> list:
                 "path": generate_procedural_scene(
                     i * 10 + len(scene_clips), scene.get("emotion", "dark")),
                 "source": "procedural",
+                "source_id": None,
+                "source_url": None,
                 "query": scene.get("visual", ""),
             })
         results.append(scene_clips)

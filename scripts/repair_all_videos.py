@@ -1152,6 +1152,11 @@ def main():
     apply = args.apply or args.fix_public
     fix_public_only = args.fix_public and not args.apply
     audit_only = args.audit
+    if apply:
+        confirmed = os.environ.get("CONFIRM_REPAIR_APPLY", "0").strip().lower()
+        if confirmed not in {"1", "true", "yes", "on"}:
+            print("❌ apply/fix-public blocked: set CONFIRM_REPAIR_APPLY=1 after reviewing audit output")
+            return 2
 
     mode = "APPLY" if apply else "DRY-RUN"
     if fix_public_only:
@@ -1235,4 +1240,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -371,6 +371,7 @@ def facebook_credit_videos(ml: LearningSystem) -> int:
                 # insights: views / watch-time / impressions / complete-views
                 views = watch_time_secs = impressions = 0
                 ins = {}
+                metric_status = {}
                 try:
                     # V3.7.5: PER-METRIC collection — har metric alag se try,
                     # jo valid ho use hota hai (account-specific metric sets
@@ -387,11 +388,13 @@ def facebook_credit_videos(ml: LearningSystem) -> int:
                                 timeout=30)
                             if rm.status_code == 200:
                                 ins[m] = _insight_totals(rm.json()).get(m, 0)
+                                metric_status[m] = "measured"
                             else:
+                                metric_status[m] = "unavailable"
                                 logger.warning("FB metric %s (%s): %s", m,
                                                vid[:16], rm.text[:120])
                         except Exception:
-                            pass
+                            metric_status[m] = "error"
                     views = int(ins.get("post_video_views", 0) or 0)
                     wt = ins.get("post_video_view_time", 0) or 0
                     if wt > 1000:      # ms → seconds
@@ -432,6 +435,9 @@ def facebook_credit_videos(ml: LearningSystem) -> int:
                     "watch_time_seconds": watch_time_secs,
                     "duration_seconds": duration_secs,
                     "platform": "facebook",
+                    "metric_status": metric_status,
+                    "views_status": "measured" if "post_video_views" in ins else "unavailable",
+                    "impressions_status": "measured" if "post_impressions" in ins else "unavailable",
                 }
                 # V3.6: retention sirf MEASURED (real watch time) par
                 retention_note = "unknown (no watch-time data)"
@@ -544,6 +550,7 @@ def instagram_credit_videos(ml: LearningSystem) -> int:
                 # insights: plays/reach/impressions/saved/shares (valid metrics)
                 plays = impressions = saved = shares = 0
                 ins = {}
+                metric_status = {}
                 try:
                     # V3.7.5: PER-METRIC collection (FB ki tarah) — har metric
                     # alag se, valid ones hi use hote hain
@@ -558,11 +565,13 @@ def instagram_credit_videos(ml: LearningSystem) -> int:
                                 timeout=30)
                             if rm.status_code == 200:
                                 ins[m] = _insight_totals(rm.json()).get(m, 0)
+                                metric_status[m] = "measured"
                             else:
+                                metric_status[m] = "unavailable"
                                 logger.warning("IG metric %s (%s): %s", m,
                                                media_id[:16], rm.text[:120])
                         except Exception:
-                            pass
+                            metric_status[m] = "error"
                     plays = int(ins.get("plays", 0) or 0) \
                         or int(ins.get("video_views", 0) or 0)
                     impressions = int(ins.get("impressions", 0) or 0) \
@@ -586,6 +595,9 @@ def instagram_credit_videos(ml: LearningSystem) -> int:
                     "saves": saved,
                     "retention_estimated": True,   # koi retention data nahi
                     "platform": "instagram",
+                    "metric_status": metric_status,
+                    "views_status": "measured" if ("plays" in ins or "video_views" in ins) else "unavailable",
+                    "impressions_status": "measured" if ("impressions" in ins or "reach" in ins) else "unavailable",
                 }
                 # V3.7: REAL CTR — sirf jab views metric (plays/video_views)
                 # ASAL mein available tha. Warna plays=0 "unknown" hai —
@@ -686,6 +698,19 @@ def main():
                  "_(abhi koi video impressions ke saath credit nahi hui — "
                  "CTR agle run mein aayega)_")
 
+    availability_rows = []
+    for vid, a in ml.data.get("attribution", {}).items():
+        m = a.get("metrics") or {}
+        if not m:
+            continue
+        availability_rows.append(
+            f"- **{a.get('platform', '?'):10}** `{vid[:16]}` → "
+            f"views={m.get('views_status', 'legacy/unknown')}, "
+            f"impressions={m.get('impressions_status', 'legacy/unknown')}"
+        )
+    availability_block = ("\n".join(availability_rows) if availability_rows else
+                          "_(abhi metric availability records nahi hain)_")
+
     report.write_text(
         f"# 📊 Coercion Files — Metrics Report\n\n"
         f"*Updated: {datetime.now(timezone.utc).isoformat()}*\n\n"
@@ -694,6 +719,7 @@ def main():
         f"{summary['penalties']} penalties\n\n"
         f"**Videos credited this run:** YT={yt_cred} · FB={fb_cred} · IG={ig_cred}\n\n"
         f"## 🎯 REAL CTR (impressions-based, no guesses)\n\n{ctr_block}\n\n"
+        f"## Metric availability (zero ≠ unavailable)\n\n{availability_block}\n\n"
         f"**Best formulas:** " +
         (", ".join(f"{b['pillar']}/{b['hook_style']} ({b['mean']})"
                    for b in summary["best_formulas"]) or "none yet") + "\n\n"

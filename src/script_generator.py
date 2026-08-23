@@ -202,9 +202,10 @@ def _repair_script_structure(script: dict) -> dict:
       2. scenes < 4 → template bank se detail/concept scene append
       3. total words < 100 → detail scene append (45-58s narration)
       4. title > 70 chars → word-boundary clamp (CTR guard rule)
-      5. unicode punctuation normalize (dash/quote variants -> ASCII) — supervisor ki
+      5. fallback claims stay generic/fictional unless a source ledger is present
+      6. unicode punctuation normalize (dash/quote variants -> ASCII) — supervisor ki
          ASCII/USA check ke liye
-      6. V3.7: per-scene MINIMUM caption length (seg0 >= 9 words, baqi >= 16 words)
+      7. V3.7: per-scene MINIMUM caption length (seg0 >= 9 words, baqi >= 16 words)
          — VoiceGuard seg-too-short (1.5s) aur over-pace (>3.2 wps) failures rokti hai.
          Chota caption = chota segment = guard fail. Ye pool se guaranteed extension
          attach karti hai (voice 45-58s sweet spot intact rehta hai).
@@ -214,14 +215,14 @@ def _repair_script_structure(script: dict) -> dict:
     MIN_WORDS_S0 = 9
     MIN_WORDS_OTHER = 16
     _pool = [
-        "The brain registers this pattern instantly, and once it starts, the loop does not stop on its own.",
-        "Investigators found the identical script in fourteen separate cases, word for word.",
-        "Behavioral data proves that once you agree to three small requests, your odds of a major concession triple.",
-        "The transcript shows the suspect never once raised their voice. Real control is quiet.",
-        "Court records confirm the manipulation started three weeks before any money moved.",
-        "Your nervous system adopts a defensive baseline without your conscious awareness, feeding the loop.",
-        "Cognitive psychologists call this the compliance cascade: small surrenders condition total capitulation.",
-        "The moment urgency is questioned, the manipulator loses all leverage — name the tactic aloud.",
+        "In a fictional composite case, the brain notices the pattern before the person can name it.",
+        "Case notes in this educational example follow a simple sequence: trust, isolation, then urgency.",
+        "Cognitive overload can narrow attention, making one pressured option feel like the only option.",
+        "A case-study style example shows that control can sound calm instead of aggressive.",
+        "The example uses a transcript-style moment to show how a boundary gets tested one step at a time.",
+        "Your nervous system can move into a defensive baseline when pressure never seems to stop.",
+        "Behavioral psychology calls this compliance pressure: small agreements can make a later request feel normal.",
+        "The safer move is to name the tactic and create time before agreeing to anything important.",
     ]
     _pool_idx = 0
 
@@ -292,24 +293,20 @@ def _repair_script_structure(script: dict) -> dict:
     # 2+3) choti script → template-bank detail scene(s) append
     words = len(" ".join(s.get("caption", "") for s in script["scenes"]).split())
     extras = [
-        {"caption": "In a documented case file, the victim described the "
-                    "same loop: trust first, then isolation, then urgency. "
-                    "Investigators found the identical script in fourteen "
-                    "separate cases, word for word.",
+        {"caption": "In a fictional composite case, the pressure sequence is "
+                    "trust, isolation, then urgency. Treat this as an "
+                    "educational illustration, not a report about a named person.",
          "visual": "redacted case file dark desk", "emotion": "chilling"},
-        {"caption": "Milgram's experiment proved obedience rises under "
-                    "authority, and Cialdini's scarcity principle explains "
-                    "exactly why the manufactured deadline worked on every "
-                    "single victim.",
+        {"caption": "Cognitive overload explains why an urgent message can "
+                    "shrink attention. Pause long enough to compare the "
+                    "request with independent evidence.",
          "visual": "vintage psychology study dark", "emotion": "mysterious"},
-        {"caption": "The transcript shows the suspect never once raised "
-                    "their voice. Real control is quiet — and the court "
-                    "records confirm the manipulation started three weeks "
-                    "before any money moved.",
-         "visual": "court documents dim light", "emotion": "dark"},
-        {"caption": "Hit like if this pattern helps you spot the trap "
-                    "before it closes. Comment the sign you recognized "
-                    "first — I read every single comment.",
+        {"caption": "Case notes can reveal the boundary test: a small request "
+                    "first, a private channel next, and pressure after that. "
+                    "Name the sequence before you respond.",
+         "visual": "case documents dim light", "emotion": "dark"},
+        {"caption": "Save this checklist for a calmer review later. Which "
+                    "detail would you verify first before taking action?",
          "visual": "dark city night reflection", "emotion": "revelatory"},
     ]
     cta_extra = extras.pop()
@@ -370,72 +367,40 @@ def _parse_script(text: str) -> dict:
         s.setdefault("emotion", "dark")
     script.setdefault("hook", script["scenes"][0].get("caption", "")[:80])
     script.setdefault("tags", ["psychology", "dark psychology", "manipulation"])
+    script.setdefault("sources", [])
+    script.setdefault("claim_mode", "factual")
     return script
 
 
-def _template_script(pillar: dict, hook_style: str) -> dict:
+def _template_script(pillar: dict, hook_style: str, topic: str = None) -> dict:
     """Offline template bank — randomized forensic human storytelling per pillar."""
-    hook = random.choice(pillar["hooks"])
+    topic_label = (topic or "").strip()[:80]
+    hook = topic_label or random.choice(pillar["hooks"])
 
     # Forensic narrative setups (Concrete human case anchors)
     narrative_setups = {
-        "cults": [
-            "In documented case files, high-control groups never recruit with ideology — they recruit with belonging. The moment your life hits turbulence, their script begins.",
-            "Declassified exit interviews reveal the exact same pattern: strangers flood you with warmth, validate your hidden pain, and make you feel finally understood.",
-            "Psychologists call it the 'belonging trap'. You don't join because you are gullible — you join because you are human and exhausted.",
-        ],
-        "con_artists": [
-            "Federal fraud analysts found that 92% of wire scams rely on a single psychological trigger: manufactured urgency that shuts down analytical thinking.",
-            "In 2024, an American executive wired $380,000 in under ten minutes. The scammer didn't hack a computer — they hacked human fear.",
-            "The script is always identical: a sudden crisis, a closing window, and an authoritative voice demanding immediate secrecy.",
-        ],
-        "interrogation": [
-            "FBI behavioral analysts know that guilty suspects rarely break from aggressive shouting — they break from deliberate, strategic silence.",
-            "When an investigator stays silent for four seconds after a statement, the suspect's anxiety forces them to fill the void with unnecessary details.",
-            "Statement analysis shows that innocent people answer directly, while deceptive answers include extra justifications and narrative padding.",
-        ],
-        "coercive_control": [
-            "In workplace and relationship psychology, covert control never starts with overt aggression — it begins with subtle boundary erosion.",
-            "First, your judgment is questioned. Then, your external support network is quietly undermined until you doubt your own perception.",
-            "Behavioral scientists call this cognitive erosion. When someone repeatedly says 'you are overreacting', it is a control mechanism.",
-        ],
-        "mind_control_history": [
-            "Declassified government archives show that decades of behavioral research converged on one truth: isolation is the prerequisite for mental control.",
-            "Project files confirm that when external reference points are removed, the human mind rapidly adapts to whatever reality the authority provides.",
-            "Historical transcripts demonstrate how language reframing can gradually normalize ideas that once seemed completely unthinkable.",
-        ],
-        "mass_psychology": [
-            "Modern engagement algorithms are engineered around evolutionary threat detection: outrage and fear circulate six times faster than calm facts.",
-            "When a feed repeatedly exposes you to artificial conflict, your nervous system adopts a defensive baseline without your conscious awareness.",
-            "Data scientists call it the outrage loop: keep the user agitated, and their attention remains captive for advertisers.",
-        ],
-        "brainwashing_myths": [
-            "Contrary to Hollywood spy films, thought reform is not a mysterious chemical process — it is systematic, high-pressure repetition.",
-            "Behavioral research confirms that beliefs do not change overnight; they shift through hundreds of micro-commitments over time.",
-            "The real danger is not sudden brainwashing, but gradual normalization of subtle boundary violations.",
-        ],
-        "stoic_defense": [
-            "Stoic philosophy provided the earliest psychological shield: the five-second gap between an external stimulus and your internal reaction.",
-            "Marcus Aurelius documented daily mental preparation against deceivers: recognize that urgency is almost always an artificial manipulation.",
-            "When you refuse to react on someone else's timeline, their entire high-pressure script immediately collapses.",
-        ],
+        pillar.get("key"): [
+            f"In a fictional composite {pillar['name'].lower()} case, pressure begins with a request that sounds reasonable. Then the other person tries to control the timeline.",
+            f"This educational {pillar['name'].lower()} case follows a familiar pattern: connection first, narrowed choices next, and urgency at the end.",
+            f"A case-study style example of {pillar['name'].lower()} shows why a calm pause protects judgment better than a fast answer.",
+        ]
     }
 
     forensic_proofs = [
-        "Neuroimaging shows that high-urgency language triggers the amygdala, effectively disabling the prefrontal cortex's ability to evaluate risk.",
-        "Behavioral data proves that once you agree to three small, insignificant requests, your likelihood of agreeing to a major concession triples.",
-        "Cognitive psychologists call this the compliance cascade: small surrenders quietly condition you for total capitulation.",
-        "Clinical analysis shows that manipulators exploit confirmation bias and scarcity to rush your timeline, because logic and sleep are their greatest enemies.",
+        "Cognitive overload can narrow attention when a message demands an instant answer, so the safest first step is to create time.",
+        "Confirmation bias can make a dramatic story feel true before independent evidence is checked; verify the sender through a separate channel.",
+        "Behavioral psychology describes compliance pressure: a small agreement can make a later request feel more ordinary than it is.",
+        "The useful concept is authority bias: a title, uniform, or confident tone can sound persuasive without proving the request is legitimate.",
     ]
 
     # V3.5: second concrete detail — template scripts 86-94 words ki thin
     # (ScriptGuard 90+ chahta hai) aur ek hi proof thin. Ye scene script ko
     # ~105+ words tak le jata hai + retention ke liye ek aur forensic detail.
     second_details = [
-        "In the declassified case file, the victim described the same loop: trust first, then isolation, then urgency.",
-        "Investigators found the same script in fourteen separate cases, word for word.",
-        "The transcript shows the suspect never once raised their voice. Control is quiet.",
-        "Court records confirm the manipulation started three weeks before any money moved.",
+        "Case notes in this fictional composite example show the sequence clearly: trust first, isolation next, urgency last.",
+        "A transcript-style example shows the pressure staying polite while the available choices quietly disappear.",
+        "The case-study pattern is easy to test: ask who benefits, what evidence exists, and why the deadline cannot wait.",
+        "In this educational example, control stays quiet; the warning sign is not volume but the removal of independent verification.",
     ]
 
     tactical_shields = [
@@ -456,14 +421,18 @@ def _template_script(pillar: dict, hook_style: str) -> dict:
         cta = ("Save this checklist if you want to review the pattern later. "
                "Which detail would you have verified first?")
 
-    setup = random.choice(narrative_setups.get(pillar.get("key"), narrative_setups["con_artists"]))
+    setup_pool = narrative_setups.get(pillar.get("key")) or next(
+        iter(narrative_setups.values()))
+    setup = random.choice(setup_pool)
     proof = random.choice(forensic_proofs)
     detail = random.choice(second_details)
     shield = random.choice(tactical_shields)
 
+    topic_visual = topic_label or pillar["name"]
     visuals = [
+        f"{topic_visual} documentary evidence dark",
         "bank cctv footage dark",
-        "redacted fbi dossier desk",
+        "redacted case file desk",
         "shadowed figure corridor night",
         "smartphone screen notification dark",
         "rain on window city neon",
@@ -531,6 +500,8 @@ def _template_script(pillar: dict, hook_style: str) -> dict:
         "key_points": "• The psychological exploit explained\n• How the brain trap works\n• 1-step tactical defense",
         "pillar": pillar["key"],
         "pillar_name": pillar["name"],
+        "sources": [],
+        "claim_mode": "fictional_composite",
     }
 
 
@@ -569,6 +540,7 @@ def generate_script(pillar_key: str = None, hook_style: str = None,
 Hook style: {hook_style}.
 Topic: {topic or pillar['name']}.
 Pillar hooks for inspiration: {', '.join(pillar['hooks'][:5])}.
+Return JSON with `claim_mode` (`factual` or `fictional_composite`) and a `sources` array of URLs for every factual claim. If you cannot cite a claim, make it a clearly labeled fictional composite example. Never invent statistics, cases, institutions, or study findings.
 {learned_hint}
 Write it now — valid JSON only."""
 
@@ -604,7 +576,7 @@ Write it now — valid JSON only."""
             except Exception as exc:
                 logger.warning("%s failed: %s", name, exc)
         if script is None:
-            script = _template_script(pillar, hook_style)
+            script = _template_script(pillar, hook_style, topic=topic)
             source = "template"
             logger.info("Using template fallback (no LLM key or LLM failed)")
         try:
@@ -627,9 +599,9 @@ Write it now — valid JSON only."""
             prompt += ("\n\nIMPORTANT: The previous script was too short "
                        f"(~{_est:.0f}s, target 48-58s). Make it LONGER: "
                        "extend to ~120-140 spoken words with one more concrete "
-                       "forensic detail, a second real example, and a named "
-                       "psychology concept/study (e.g. Milgram, Stanford, "
-                       "Cialdini, cognitive dissonance).")
+                       "forensic detail and a named psychology concept only "
+                       "when it has a source in the sources list. Never invent "
+                       "statistics, cases, institutions, or study findings.")
             logger.warning("Script too short (~%ds) — retrying with 'make longer' hint",
                            round(_est))
         else:
@@ -727,6 +699,8 @@ Write it now — valid JSON only."""
     script["arm_key"] = arm_key or LearningSystem.arm_key(
         pillar["key"], hook_style, "any")
     script.setdefault("tags", pillar["tags"][:10])
+    script.setdefault("sources", [])
+    script.setdefault("claim_mode", "factual" if source in ("groq", "gemini") else "fictional_composite")
 
     # ── V3.1: CTR-OPTIMIZED TITLE — generate high-CTR title variants ──
     # V3.4: threshold 0.55 (honest scale) + sirf tab replace karo jab naya

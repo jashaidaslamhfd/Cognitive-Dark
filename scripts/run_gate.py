@@ -23,25 +23,32 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from guards.gate import ReleaseGate
 
-PAYLOAD_PATH = ROOT / "output" / "gate_payload.json"
+def latest_payload() -> Path:
+    candidates = list((ROOT / "output" / "runs").glob("*/artifacts/gate_payload.json"))
+    candidates += list((ROOT / "output" / "dry_runs").glob("*/artifacts/gate_payload.json"))
+    return max(candidates, key=lambda p: p.stat().st_mtime) if candidates else \
+        ROOT / "output" / "gate_payload.json"
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Independent Release Gate runner")
-    ap.add_argument("--payload", default=str(PAYLOAD_PATH))
+    ap.add_argument("--payload", default=None,
+                    help="explicit gate payload; default is the newest run-scoped payload")
     ap.add_argument("--mode", default=None,
                     help="strict | warn | off (default: env GATE_MODE ya strict)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    if not Path(args.payload).exists():
-        print(f"❌ payload nahi mili: {args.payload}")
+    payload_path = Path(args.payload) if args.payload else latest_payload()
+    if not payload_path.exists():
+        print(f"❌ payload nahi mili: {payload_path}")
         print("   Pehle pipeline chalao (python src/main.py --dry-run) — "
-              "wo output/gate_payload.json likhti hai.")
+              "wo output/dry_runs/<run_id>/artifacts/gate_payload.json likhti hai.")
         return 1
 
-    gate = ReleaseGate(mode=args.mode)
-    reports = gate.evaluate_from_file(args.payload)
+    report_dir = payload_path.parent / "gate_reports"
+    gate = ReleaseGate(mode=args.mode, report_dir=report_dir)
+    reports = gate.evaluate_from_file(payload_path)
 
     if args.json:
         print(json.dumps([
@@ -64,7 +71,7 @@ def main() -> int:
                 print("  SUPERVISOR violations:")
                 for viol in r.supervisor.get("violations", []):
                     print(f"     ❌ {viol}")
-        print("\nReports: data/gate_report.json + data/gate_report.md")
+        print(f"\nReports: {report_dir}/gate_report_<platform>.json + .md")
 
     return 0 if all(r.released for r in reports) else 2
 

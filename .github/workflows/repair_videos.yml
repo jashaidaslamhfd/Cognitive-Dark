@@ -11,7 +11,7 @@ on:
           - full
           - fix-public
           - audit-only
-        default: "full"
+        default: "audit-only"
       skip_yt:
         description: "YouTube skip karein?"
         required: false
@@ -24,6 +24,11 @@ on:
         default: false
       skip_ig:
         description: "Instagram skip karein?"
+        required: false
+        type: boolean
+        default: false
+      confirm_apply:
+        description: "Required for full/fix-public live changes"
         required: false
         type: boolean
         default: false
@@ -70,11 +75,18 @@ jobs:
           SKIP_YT: ${{ inputs.skip_yt && '1' || '0' }}
           SKIP_FB: ${{ inputs.skip_fb && '1' || '0' }}
           SKIP_IG: ${{ inputs.skip_ig && '1' || '0' }}
+          CONFIRM_APPLY: ${{ inputs.confirm_apply && '1' || '0' }}
+          CONFIRM_REPAIR_APPLY: ${{ inputs.confirm_apply && '1' || '0' }}
         run: |
           set -euo pipefail
 
-          MODE="${REPAIR_MODE:-full}"
+          MODE="${REPAIR_MODE:-audit-only}"
           SKIP_YT="${SKIP_YT:-0}"
+          CONFIRM_APPLY="${CONFIRM_APPLY:-0}"
+          if [ "$MODE" != "audit-only" ] && [ "$CONFIRM_APPLY" != "1" ]; then
+            echo "::error::full/fix-public requires confirm_apply=true"
+            exit 1
+          fi
           SKIP_FB="${SKIP_FB:-0}"
           SKIP_IG="${SKIP_IG:-0}"
 
@@ -108,13 +120,12 @@ jobs:
 
       - name: Commit changes (conflict-safe)
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git config user.name "Coercion Files Bot"
           git config user.email "bot@coercionfiles.local"
 
-          # Fetch latest and rebase
-          git pull --no-rebase --autostash origin main 2>/dev/null \
-            || git pull --no-rebase --autostash -X ours origin main || true
+          # Fetch latest; conflicts are a hard failure, never a silent overwrite.
+          git pull --no-rebase --autostash origin main
 
           # Safety checks
           if grep -lE '^(<<<<<<<|>>>>>>>)' data/*.json data/*.jsonl 2>/dev/null; then
@@ -134,4 +145,3 @@ jobs:
             git push
             echo "✅ Changes committed and pushed"
           fi
-        continue-on-error: true

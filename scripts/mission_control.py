@@ -33,7 +33,7 @@ sys.path.insert(0, str(ROOT / "src"))
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("mission_control")
 
-from config.settings import DATA_DIR, USA_STYLE
+from config.settings import DATA_DIR, OUTPUT_DIR, USA_STYLE
 from ml_engine import LearningSystem
 
 REPORT_PATH = DATA_DIR / "health_report.md"
@@ -139,7 +139,32 @@ def audit(ml: LearningSystem) -> tuple[list[str], list[str]]:
     except (OSError, json.JSONDecodeError) as exc:
         problems.append(f"⚠️ monetization_progress.json unreadable ({exc})")
 
-    # 8) Growth playbook — V3.6 HONEST: sirf MEASURED cheezon ko ✅ milta hai.
+    # 8) Latest run-scoped gate and telemetry quality
+    gate_reports = list((OUTPUT_DIR / "runs").glob("*/artifacts/gate_reports/gate_report_*.json"))
+    gate_reports += list((OUTPUT_DIR / "dry_runs").glob("*/artifacts/gate_reports/gate_report_*.json"))
+    if gate_reports:
+        latest_gate = max(gate_reports, key=lambda p: p.stat().st_mtime)
+        try:
+            gd = json.loads(latest_gate.read_text(encoding="utf-8"))
+            if gd.get("released"):
+                ok.append(f"✅ Latest gate: {gd.get('platform', '?')} RELEASED grade={gd.get('grade', '?')} ({latest_gate.parent.parent.parent.name})")
+            else:
+                problems.append(f"❌ Latest gate held: {gd.get('platform', '?')} — inspect {latest_gate}")
+        except (OSError, json.JSONDecodeError) as exc:
+            problems.append(f"⚠️ Latest gate report unreadable ({exc})")
+    else:
+        problems.append("⚠️ No run-scoped gate report found — delivery has not been verified")
+
+    unavailable = []
+    for vid, record in ml.data.get("attribution", {}).items():
+        metrics = record.get("metrics") or {}
+        status = metrics.get("views_status")
+        if status and status != "measured":
+            unavailable.append(f"{record.get('platform', '?')}:{vid[:12]}={status}")
+    if unavailable:
+        problems.append("⚠️ Metrics unavailable (not real zero views): " + ", ".join(unavailable[:5]))
+
+    # 9) Growth playbook — V3.6 HONEST: sirf MEASURED cheezon ko ✅ milta hai.
     # Static config claims ("built-in ✅") hata diye — module ka hona is baat
     # ka saboot nahi ke output theek hai. Ab config items ⚙️ (gate har run
     # verify karta hai) aur asal verification sirf gate/measurements se.

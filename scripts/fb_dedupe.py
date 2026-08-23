@@ -12,8 +12,11 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 import requests
 
@@ -53,6 +56,10 @@ def main():
     ap.add_argument("--apply", action="store_true",
                     help="actually delete duplicates (default: dry-run)")
     args = ap.parse_args()
+    if args.apply:
+        confirmed = os.environ.get("CONFIRM_FB_DELETE", "0").strip().lower()
+        if confirmed not in {"1", "true", "yes", "on"}:
+            sys.exit("--apply blocked: set CONFIRM_FB_DELETE=1 after reviewing the dry-run")
 
     tok = os.environ.get("FB_ACCESS_TOKEN", "")
     page = os.environ.get("FB_PAGE_ID", "")
@@ -91,9 +98,18 @@ def main():
         return
 
     print("=" * 70)
+    manifest = Path(os.environ.get("FB_DELETE_MANIFEST", "data/fb_delete_manifest.json"))
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    manifest.write_text(json.dumps({
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "action": "apply" if args.apply else "dry-run",
+        "keep": [copies[0].get("id") for copies in groups.values() if copies],
+        "to_delete": to_delete,
+    }, indent=2), encoding="utf-8")
+    print(f"Manifest: {manifest}")
     if not args.apply:
         print(f"DRY-RUN: {len(to_delete)} duplicate(s) delete hongi. "
-              f"Pakka karne ke liye: python scripts/fb_dedupe.py --apply")
+              f"Review manifest, then set CONFIRM_FB_DELETE=1 for --apply")
         return
 
     print(f"Deleting {len(to_delete)} duplicate(s)...")
@@ -108,4 +124,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

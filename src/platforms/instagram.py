@@ -87,7 +87,10 @@ class InstagramUploader(BasePlatform):
                           data={"creation_id": container_id},
                           headers=self._headers(), timeout=120)
         r.raise_for_status()
-        return r.json().get("id")
+        media_id = r.json().get("id")
+        if not media_id:
+            raise RuntimeError(f"IG publish returned no media id: {r.text[:300]}")
+        return media_id
 
     def _upload_resumable(self, video_path: str, caption: str = "") -> str:
         """Chunked direct upload (no public hosting needed)."""
@@ -118,13 +121,13 @@ class InstagramUploader(BasePlatform):
             raise RuntimeError(f"no container id: {data}")
         upload_uri = data.get("uri") or f"{RUP_URL}/{API_VERSION}/{container}"
         mime = mimetypes.guess_type(video_path)[0] or "video/mp4"
-        # Official IG resumable protocol (Meta docs): POST the raw file to the
-        # returned uri with `Authorization: OAuth <token>`, `offset`, `file_size`.
-        # PUT + Bearer + X-Entity-* (the old attempt) → 404 from rupload.
+        # Official IG resumable protocol: POST the raw file to the returned
+        # URI with OAuth auth, offset, and file_size. Bearer on this endpoint
+        # can produce a misleading 404 even when the Graph token is valid.
         with open(video_path, "rb") as fh:
             r = requests.post(
                 upload_uri, data=fh,
-                headers={"Authorization": f"Bearer {self.token}",
+                headers={"Authorization": f"OAuth {self.token}",
                          "offset": "0",
                          "file_size": str(size),
                          "Content-Type": mime}, timeout=1800)
@@ -159,8 +162,18 @@ class InstagramUploader(BasePlatform):
                                                    caption=pkg.get("description", ""))
             self._wait_ready(container)
             media_id = self._publish(container)
-            logger.info("✅ Instagram Reel: %s", media_id)
+            verified = False
+            try:
+                vr = requests.get(
+                    f"{GRAPH}/{API_VERSION}/{media_id}",
+                    params={"access_token": self.token,
+                            "fields": "id,permalink,timestamp"}, timeout=30)
+                verified = vr.status_code == 200 and vr.json().get("id") == media_id
+            except Exception as verify_exc:
+                logger.warning("Instagram publish verification unavailable: %s", verify_exc)
+            logger.info("✅ Instagram Reel: %s (delivery_verified=%s)", media_id, verified)
             return self.result(True, media_id=media_id,
+                               delivery_verified=verified,
                                url=f"https://instagram.com/reel/{media_id}")
         except Exception as exc:
             logger.error("Instagram upload failed: %s", exc)

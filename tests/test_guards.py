@@ -509,7 +509,8 @@ def test_gate_warn_mode_never_blocks(tmp_path: Path):
                "segments": [], "video_path": "/nonexistent.mp4",
                "package": {}, "ml": None}
     rep = gate.evaluate(payload)
-    assert rep.released is True     # report banti hai, block nahi
+    assert rep.released is False
+    assert any("audit-only" in v for v in rep.supervisor.get("violations", []))
     assert rep.verdicts             # guards phir bhi chale
 
 

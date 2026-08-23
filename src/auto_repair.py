@@ -61,7 +61,8 @@ class Preflight:
     def __init__(self):
         self.checks = {}
 
-    def run(self, check_deps: bool = True, check_keys: bool = False) -> dict:
+    def run(self, check_deps: bool = True, check_keys: bool = False,
+            strict_deps: bool = False) -> dict:
         self.checks["system"] = {b: which(b) for b in self.CRITICAL}
         self.checks["warn"] = {b: which(b) for b in self.WARNING}
 
@@ -69,6 +70,11 @@ class Preflight:
             self.checks["deps"] = self._importable([
                 "moviepy", "PIL", "numpy", "requests", "soundfile", "dotenv",
             ])
+            if strict_deps:
+                missing_deps = [k for k, v in self.checks["deps"].items() if not v]
+                if missing_deps:
+                    raise SystemExit(
+                        f"❌ Preflight FAILED — missing Python dependencies: {missing_deps}")
 
         # disk space on output dir
         try:

@@ -149,9 +149,19 @@ def _title(script: dict, platform: str) -> str:
     return chosen
 
 
+def _provenance_note(script: dict) -> str:
+    sources = [str(s).strip() for s in (script.get("sources") or []) if str(s).strip()]
+    if sources:
+        return "SOURCES:\n" + "\n".join(f"- {s}" for s in sources[:8])
+    if script.get("claim_mode") == "fictional_composite":
+        return "Illustrative composite example for education; not a report about a named person or verified incident."
+    return "Source verification required before publication."
+
+
 def _description(script: dict, platform: str, durations: list = None) -> str:
     hook = script.get("hook", "")
     key_points = script.get("key_points", "")
+    provenance = _provenance_note(script)
     if platform == "youtube":
         keyword = script.get("pillar_name", "psychology")
         chapters = _chapters(durations) if durations else ""
@@ -161,7 +171,7 @@ def _description(script: dict, platform: str, durations: list = None) -> str:
                 f"{chapters}\n\n"
                 f"🔍 WHAT YOU'LL LEARN:\n{key_points}\n\n"
                 f"📌 SUBSCRIBE for daily psychology shorts — new uploads daily.\n"
-                f"{EDUCATIONAL_DISCLAIMER}\n\n"
+                f"{EDUCATIONAL_DISCLAIMER}\n\n{provenance}\n\n"
                 f"{' '.join(PLATFORM_HASHTAGS['youtube'])}")
         return desc[:4500]
     if platform == "facebook":
@@ -172,7 +182,7 @@ def _description(script: dict, platform: str, durations: list = None) -> str:
         ])
         cta = random.choice(CTA_FB)
         desc = (f"{first}\n\n{key_points}\n\n"
-                f"{cta}\n\n{EDUCATIONAL_DISCLAIMER}\n\n"
+                f"{cta}\n\n{EDUCATIONAL_DISCLAIMER}\n\n{provenance}\n\n"
                 f"{' '.join(PLATFORM_HASHTAGS['facebook'])}")
         return desc[:6300]
     if platform == "instagram":
@@ -180,8 +190,8 @@ def _description(script: dict, platform: str, durations: list = None) -> str:
         tags = PLATFORM_HASHTAGS["instagram"][:]
         random.shuffle(tags)
         desc = (f"{hook}\n\n{key_points}\n\n"
-                f"📌 {cta}\n\n{EDUCATIONAL_DISCLAIMER}\n\n"
-                f"{' '.join(tags[:20])}")
+                f"📌 {cta}\n\n{EDUCATIONAL_DISCLAIMER}\n\n{provenance}\n\n"
+                f"{' '.join(tags[:META_MAX_HASHTAGS])}")
         return desc[:2200]
     return script.get("description", "")[:4500]
 

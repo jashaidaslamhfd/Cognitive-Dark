@@ -26,7 +26,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: cognitive-dark-pipeline
+  group: cognitive-dark-writer
   cancel-in-progress: false
 
 jobs:
@@ -111,10 +111,20 @@ jobs:
       - name: Package content for manual posting
         if: always()
         run: |
+          set -euo pipefail
           mkdir -p content_pack
-          cp output/final_video.mp4 content_pack/video.mp4 2>/dev/null || true
-          cp output/thumbnail.jpg content_pack/thumbnail.jpg 2>/dev/null || true
-          cp output/seo_packages.json content_pack/ 2>/dev/null || true
+          found=0
+          while IFS= read -r -d '' video; do
+            run_dir="$(dirname "$(dirname "$video")")"
+            run_id="$(basename "$run_dir")"
+            cp "$video" "content_pack/video_${run_id}.mp4"
+            thumb="$(dirname "$video")/thumbnail.jpg"
+            packages="$(dirname "$video")/seo_packages.json"
+            [ -f "$thumb" ] && cp "$thumb" "content_pack/thumbnail_${run_id}.jpg"
+            [ -f "$packages" ] && cp "$packages" "content_pack/seo_packages_${run_id}.json"
+            found=1
+          done < <(find output/runs output/dry_runs -type f -path '*/artifacts/final_video.mp4' -mmin -30 -print0 2>/dev/null)
+          [ "$found" -eq 1 ] || echo "No run-scoped video artifacts found"
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -124,7 +134,7 @@ jobs:
           retention-days: 3
 
       - name: Fetch real metrics & credit ML (same memory, single writer)
-        if: always()
+        if: ${{ success() }}
         env:
           # V2.1: pass YT creds here too (V2 omitted them → YT metrics never
           # synced in CI). Both naming schemes accepted.
@@ -147,19 +157,16 @@ jobs:
       # hard failure (RED run) instead of ever committing corruption.
       - name: Commit learning memory back (single writer, conflict-safe)
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git config user.name "Coercion Files Bot"
           git config user.email "bot@coercionfiles.local"
-          # Bring in remote changes; on conflict keep OUR freshly generated data
-          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME" 2>/dev/null \
-            || git pull --no-rebase --autostash -X ours origin "$GITHUB_REF_NAME" || true
+          # Bring in remote changes; a conflict is a hard failure, never a silent overwrite.
+          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME"
           # V3.7.5: unmerged (still-conflicting) files = resolve by keeping OUR
           # freshly generated data; NEVER leave them blocking the commit.
           if [ -n "$(git ls-files --unmerged 2>/dev/null)" ]; then
-            git ls-files --unmerged | awk '{print $4}' | sort -u | while read -r f; do
-              git checkout --ours "$f" 2>/dev/null && git add "$f" || true
-            done
-            echo "⚠️ Resolved $(git ls-files --unmerged 2>/dev/null | wc -l) lingering unmerged paths via --ours"
+            echo "::error::Unmerged paths remain after pull"
+            exit 1
           fi
           # NEVER commit conflict markers or invalid JSON — corruption = RED run
           if grep -lE '^(<<<<<<<|>>>>>>>)' data/*.json data/*.jsonl 2>/dev/null; then
@@ -173,21 +180,20 @@ jobs:
             data/monetization_progress.json data/metrics_report.md \
             data/*.events.jsonl data/strategy_state.json data/strategy_notes.md \
             data/health_report.md data/daily_brief.md data/reply_queue.json \
-            data/engagement_report.md data/llm_state.json \
-            data/gate_report.md data/gate_report.json 2>/dev/null || true
+            data/engagement_report.md data/llm_state.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No data changes to commit"
           else
             git commit -m "🤖 Update ML learning store + journal [skip ci]"
-            # V3.7.3: push RETRY (3x) — pehle ek race mein push chup-chaap
-            # fail hua aur aaj ki 3 uploads ki attribution lost ho gayi
+            pushed=false
             for i in 1 2 3; do
-              if git pull --no-rebase --autostash -X ours origin main 2>/dev/null \
-                 && git push 2>/dev/null; then
+              if git push 2>/dev/null; then
                 echo "✅ Learning store pushed (attempt $i)"
+                pushed=true
                 break
               fi
               echo "⚠️ push attempt $i failed — retrying..."
               sleep 10
             done
+            [ "$pushed" = true ] || { echo "::error::All push attempts failed"; exit 1; }
           fi

@@ -90,13 +90,14 @@ def test_variety_guard_dampens_repeat_pillar(tmp_path):
 
 
 def test_notes_file_written(tmp_path):
-    from strategy_director import NOTES_PATH
     ml = fresh_ml(tmp_path)
-    d = StrategyDirector(ml=ml, state_path=tmp_path / "s.json")
+    notes_path = tmp_path / "notes.md"
+    d = StrategyDirector(ml=ml, state_path=tmp_path / "s.json",
+                         notes_path=notes_path)
     d.decide()
     # decide() writes the human-readable strategy journal
-    assert NOTES_PATH.exists()
-    assert "Momentum" in NOTES_PATH.read_text(encoding="utf-8")
+    assert notes_path.exists()
+    assert "Momentum" in notes_path.read_text(encoding="utf-8")
 
 
 def test_old_state_file_migrates(tmp_path):

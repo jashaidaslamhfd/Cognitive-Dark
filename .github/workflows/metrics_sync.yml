@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: metrics-sync
+  group: cognitive-dark-writer
   cancel-in-progress: false
 
 jobs:
@@ -47,11 +47,10 @@ jobs:
 
       - name: Commit learning memory (conflict-safe)
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git config user.name "Coercion Files Bot"
           git config user.email "bot@coercionfiles.local"
-          git pull --no-rebase --autostash origin main 2>/dev/null \
-            || git pull --no-rebase --autostash -X ours origin main || true
+          git pull --no-rebase --autostash origin main
           if grep -lE '^(<<<<<<<|>>>>>>>)' data/*.json data/*.jsonl 2>/dev/null; then
             echo "::error::Conflict markers in data/*.json"
             exit 1
@@ -65,6 +64,15 @@ jobs:
             echo "No data changes to commit"
           else
             git commit -m "📊 Metrics sync — real views + impressions + CTR [skip ci]"
-            git push
-            echo "✅ Metrics committed and pushed"
+            pushed=false
+            for i in 1 2 3; do
+              if git push; then
+                pushed=true
+                echo "✅ Metrics committed and pushed (attempt $i)"
+                break
+              fi
+              echo "⚠️ metrics push attempt $i failed — retrying..."
+              sleep 10
+            done
+            [ "$pushed" = true ] || { echo "::error::All metrics push attempts failed"; exit 1; }
           fi

@@ -355,7 +355,7 @@ def _pick_music() -> str:
 # main build (memory-safe: one scene at a time)
 # ─────────────────────────────────────────────────────────────
 def _build_audio(audio_segments: list, total_duration: float,
-                 scene_starts: list = None) -> str:
+                 scene_starts: list = None, temp_dir: str = None) -> str:
     from moviepy.editor import AudioFileClip, CompositeAudioClip, concatenate_audioclips
     tracks = []
     # V2.6 SYNC FIX: place each voice at its EXACT scene start time.
@@ -363,7 +363,7 @@ def _build_audio(audio_segments: list, total_duration: float,
     #  pad each → captions drifted ~0.4s later per scene; by scene 6 the
     #  voice led captions by ~2.4s.)
     if scene_starts:
-        for seg, start in zip(audio_segments, scene_starts, strict=False):
+        for seg, start in zip(audio_segments, scene_starts, strict=True):
             if seg.get("path") and os.path.exists(seg["path"]):
                 tracks.append(AudioFileClip(seg["path"]).set_start(start))
     else:
@@ -386,8 +386,9 @@ def _build_audio(audio_segments: list, total_duration: float,
             logger.warning("music failed: %s", exc)
     if not tracks:
         return None
-    os.makedirs(TMP, exist_ok=True)
-    track_path = os.path.join(TMP, "narration.m4a")
+    work_tmp = temp_dir or TMP
+    os.makedirs(work_tmp, exist_ok=True)
+    track_path = os.path.join(work_tmp, "narration.m4a")
     CompositeAudioClip(tracks).write_audiofile(track_path, fps=44100, codec="aac", logger=None)
     for t in tracks:
         with contextlib.suppress(Exception):
@@ -396,7 +397,8 @@ def _build_audio(audio_segments: list, total_duration: float,
 
 
 def build_short(scene_visuals: list, audio_segments: list, scenes: list,
-                out_path: str = None, hook: str = None) -> str:
+                out_path: str = None, hook: str = None,
+                temp_dir: str = None) -> str:
     """scene_visuals: list (per scene) of lists (cuts) of clip paths."""
     import gc
 
@@ -404,13 +406,14 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
 
     if out_path is None:
         out_path = os.path.join(OUT, "final_video.mp4")
+    work_tmp = temp_dir or TMP
 
     if len(scene_visuals) != len(audio_segments) or len(scene_visuals) != len(scenes):
         raise RuntimeError(
             f"length mismatch: scenes={len(scene_visuals)} audio={len(audio_segments)} "
             f"scenes={len(scenes)}")
 
-    os.makedirs(TMP, exist_ok=True)
+    os.makedirs(work_tmp, exist_ok=True)
     hook = hook or scenes[0].get("hook") or ""
 
     # ── RETENTION OPTIMIZATION: V3.1 ────────────────────────────
@@ -437,7 +440,7 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
         scene_starts.append(running)
         running += duration
         narration_dur = float(seg.get("duration", 4.0))
-        visuals = visuals or [os.path.join(TMP, "none.jpg")]
+        visuals = visuals or [os.path.join(work_tmp, "none.jpg")]
         caption_text = scene.get("caption_roman") or scene.get("caption", "")
         emotion = scene.get("emotion", "dark")
 
@@ -469,7 +472,7 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
             if t1 - t0 < 0.15:
                 continue
             img = _caption_strip_usa(caption_text, chunks, idx, emotion)
-            cap_path = os.path.join(TMP, f"cap_{i:02d}_{idx:02d}.png")
+            cap_path = os.path.join(work_tmp, f"cap_{i:02d}_{idx:02d}.png")
             img.save(cap_path)
             big = img.resize((int(WIDTH * 1.14), int(img.height * 1.14)),
                              Image.LANCZOS)
@@ -492,7 +495,7 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
         # ── HOOK overlay (scene 0, first seconds) ──
         if i == 0 and hook:
             h_img = _hook_overlay_usa(hook)
-            h_path = os.path.join(TMP, "hook_overlay.png")
+            h_path = os.path.join(work_tmp, "hook_overlay.png")
             h_img.save(h_path)
             # Bigger, longer hook overlay for retention (V3.1)
             layers.append(ImageClip(h_path).set_duration(min(RETENTION_HOOK_DUR, duration))
@@ -503,7 +506,7 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
             loop_dur = min(LOOP_SECS, duration * 0.3)
             if loop_dur >= 0.5:
                 l_img = _hook_overlay_usa(hook)
-                l_path = os.path.join(TMP, "loop_trick.png")
+                l_path = os.path.join(work_tmp, "loop_trick.png")
                 l_img.save(l_path)
                 layers.append(ImageClip(l_path).set_duration(loop_dur)
                               .set_position(("center", 0))
@@ -514,7 +517,7 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
             _add_cta_end_card(layers, duration, emotion)
 
         scene_clip = CompositeVideoClip(layers, size=(WIDTH, HEIGHT)).set_duration(duration)
-        scene_file = os.path.join(TMP, f"scene_{i:02d}.mp4")
+        scene_file = os.path.join(work_tmp, f"scene_{i:02d}.mp4")
         scene_clip.write_videofile(
             scene_file, fps=FPS, codec="libx264", audio_codec="aac", bitrate="4000k",
             ffmpeg_params=["-pix_fmt", "yuv420p"], logger=None,
@@ -527,10 +530,10 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
         gc.collect()
 
     # 2) concat with ffmpeg demuxer
-    list_file = os.path.join(TMP, "concat.txt")
+    list_file = os.path.join(work_tmp, "concat.txt")
     with open(list_file, "w") as fh:
         fh.writelines(f"file '{Path(f).resolve()}'\n" for f in scene_files)
-    silent_video = os.path.join(TMP, "silent.mp4")
+    silent_video = os.path.join(work_tmp, "silent.mp4")
     # V2.6.2 FIX: re-encode at concat instead of `-c copy`. MoviePy/libx264 can
     # emit slightly differing SPS/PPS per scene (different cut counts / punch
     # zooms); stream-copy concat then produced frozen/corrupt output on some
@@ -547,7 +550,7 @@ def build_short(scene_visuals: list, audio_segments: list, scenes: list,
          "-of", "default=nw=1:nk=1", silent_video],
         capture_output=True, text=True, check=True).stdout.strip())
     track = _build_audio(audio_segments, total_duration=dur,
-                         scene_starts=scene_starts)
+                         scene_starts=scene_starts, temp_dir=work_tmp)
 
     # 4) mux
     os.makedirs(OUT, exist_ok=True)
@@ -582,7 +585,7 @@ def _cover_resize(img: Image.Image, width: int, height: int) -> Image.Image:
     return img.crop((left, top, left + width, top + height))
 
 
-def generate_thumbnail(first_visual: str, hook: str = "") -> str:
+def generate_thumbnail(first_visual: str, hook: str = "", out_dir: str = None) -> str:
     if first_visual.lower().endswith((".mp4", ".mov", ".avi")):
         from moviepy.editor import VideoFileClip
         clip = VideoFileClip(first_visual)
@@ -615,8 +618,9 @@ def generate_thumbnail(first_visual: str, hook: str = "") -> str:
         img.alpha_composite(ov)
         img = img.convert("RGB")
 
-    os.makedirs(OUT, exist_ok=True)
-    p = os.path.join(OUT, "thumbnail.jpg")
+    target_dir = out_dir or OUT
+    os.makedirs(target_dir, exist_ok=True)
+    p = os.path.join(target_dir, "thumbnail.jpg")
     img.save(p, quality=90)
     return p
 

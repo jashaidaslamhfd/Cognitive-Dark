@@ -11,7 +11,7 @@ permissions:
 # V2.1: serialize with the daily pipeline so both never upload at once
 # (V2 had no concurrency group → possible double-posting / push races).
 concurrency:
-  group: cognitive-dark-pipeline
+  group: cognitive-dark-writer
   cancel-in-progress: false
 
 jobs:
@@ -43,7 +43,9 @@ jobs:
       - name: Ensure music assets
         run: |
           mkdir -p assets/music
-          ls assets/music/*.wav 2>/dev/null || python scripts/generate_music.py || true
+          if ! compgen -G 'assets/music/*.wav' >/dev/null; then
+            python scripts/generate_music.py
+          fi
 
       - name: Run ML Autonomous Pipeline
         env:
@@ -67,14 +69,13 @@ jobs:
         run: python src/main.py
 
       - name: Sync Learning Data (conflict-safe)
-        if: always()
+        if: success()
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git config user.name "Coercion Files Brain"
           git config user.email "brain@coercionfiles.ai"
-          # On conflict keep the freshly generated data; NEVER commit markers
-          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME" 2>/dev/null \
-            || git pull --no-rebase --autostash -X ours origin "$GITHUB_REF_NAME" || true
+          # Conflicts are a hard failure; never silently overwrite remote learning state.
+          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME"
           if grep -lE '^(<<<<<<<|>>>>>>>)' data/*.json data/*.jsonl 2>/dev/null; then
             echo "::error::Conflict markers in data/*.json — run scripts/repair_data_files.py --apply first."
             exit 1
@@ -83,6 +84,9 @@ jobs:
             python -m json.tool "$f" >/dev/null || { echo "::error::Invalid JSON: $f"; exit 1; }
           done
           git add -f data/
-          git commit -m "🧠 ML: Daily autonomous update [skip ci]" || echo "No changes"
-          git push
-        continue-on-error: true
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "🧠 ML: Daily autonomous update [skip ci]"
+            git push
+          fi

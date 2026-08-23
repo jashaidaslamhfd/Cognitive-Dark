@@ -57,21 +57,28 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
                  pillar: str = None, topic: str = None) -> dict:
     start = time.time()
     platforms = platforms or [p for p, c in PLATFORMS.items() if c["enabled"]]
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%f")
+    run_root = OUTPUT_DIR / ("dry_runs" if dry_run else "runs") / run_id
+    artifact_dir = run_root / "artifacts"
+    temp_dir = run_root / "tmp"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    temp_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── auto-repair: journal + stale-state repair (V2.1: repair BEFORE start) ──
-    journal = RepairJournal()
-    journal.repair_if_crashed()          # detect a crashed PREVIOUS run first
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    # Dry-runs use a disposable journal and in-memory ML state. They must not
+    # repair, clean, or rewrite production data files.
+    journal = RepairJournal(path=run_root / "run_journal.json" if dry_run else None)
+    if not dry_run:
+        journal.repair_if_crashed()
+        cleanup(keep_dirs=[str(OUTPUT_DIR)], older_than_hours=24)
     journal.start_run(run_id, "short_pipeline")
-    cleanup(older_than_hours=24)
 
     # ── preflight ──
-    Preflight().run(check_deps=True)
+    Preflight().run(check_deps=True, strict_deps=True)
     logger.info("🚀 COGNITIVE DARK V2.1 — platforms=%s dry_run=%s",
                 ",".join(platforms), dry_run)
 
     # ── ML engine ──
-    ml = LearningSystem()
+    ml = LearningSystem(persist=not dry_run)
 
     # Warm-start the bandit with market intelligence once (idempotent: real
     # per-video evidence is never overwritten). Falls back to curated patterns.
@@ -97,7 +104,7 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
     try:
         from market_intel import sync_competitor_data
         last_sync = ml.data.get("competitor_sync_ts", "")
-        if not last_sync:
+        if not dry_run and not last_sync:
             res = sync_competitor_data()
             if res.get("fetched"):
                 ml.data["competitor_sync_ts"] = datetime.now(timezone.utc).isoformat()
@@ -116,16 +123,18 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
     except Exception as exc:
         logger.warning("Virality index skipped: %s", exc)
 
-    # Strategy director — auto-tune epsilon, voice speed, cadence from results
+    # Strategy director — auto-tune only on live runs; preview must be inert.
     try:
-        from strategy_director import StrategyDirector
-        director = StrategyDirector(ml=ml)
-        director.decide()
-        director.apply_to_env()
-        # Reload cfg overrides (epsilon may have changed from env)
-        env_eps = os.environ.get("CD_EPSILON")
-        if env_eps:
-            ml.cfg["epsilon"] = float(env_eps)
+        if not dry_run:
+            from strategy_director import StrategyDirector
+            director = StrategyDirector(ml=ml)
+            director.decide()
+            director.apply_to_env()
+            env_eps = os.environ.get("CD_EPSILON")
+            if env_eps:
+                ml.cfg["epsilon"] = float(env_eps)
+        else:
+            director = None
     except Exception as exc:
         logger.warning("Strategy director skipped: %s", exc)
         director = None
@@ -164,7 +173,7 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
     # repair loop naya script banata hai (GATE_MAX_REPAIRS tak), phir
     # video HELD rehti hai aur upload nahi hota.
     from guards.gate import ReleaseGate
-    gate = ReleaseGate()
+    gate = ReleaseGate(report_dir=artifact_dir / "gate_reports")
     max_repairs = int(os.environ.get("GATE_MAX_REPAIRS", "2"))
     gate_verdicts: dict = {}
     publish_times: dict = {}
@@ -200,8 +209,31 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
             return {"success": False, "reason": guard["reason"]}
 
         # ── 2. Clips (Pexels → Pixabay → procedural) — 3 DISTINCT cuts per scene ──
-        clip_sets = prepare_clips(script["scenes"], per_scene=3)
+        clip_sets = prepare_clips(
+            script["scenes"], per_scene=3, cache_dir=temp_dir / "clips")
         scene_visuals = [[c["path"] for c in s] for s in clip_sets]
+        asset_ledger = {
+            "run_id": run_id,
+            "scenes": [
+                {
+                    "scene": i,
+                    "query": script["scenes"][i].get("visual", ""),
+                    "assets": [
+                        {k: clip.get(k) for k in
+                         ("source", "source_id", "source_url", "width", "height", "query")}
+                        for clip in scene_clips
+                    ],
+                }
+                for i, scene_clips in enumerate(clip_sets)
+            ],
+        }
+        try:
+            import json as _json
+            (artifact_dir / "asset_provenance.json").write_text(
+                _json.dumps(asset_ledger, ensure_ascii=False, indent=2),
+                encoding="utf-8")
+        except OSError as exc:
+            logger.warning("asset provenance write failed: %s", exc)
         logger.info("🎞️  Clips: %s (%d scenes x %d cuts)",
                     ", ".join(sorted({c["source"] for s in clip_sets for c in s})),
                     len(scene_visuals), len(scene_visuals[0]) if scene_visuals else 0)
@@ -234,9 +266,12 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
         release_tts()  # free the ~300MB Kokoro model before video render
 
         # ── 4. Video (USA style: fast cuts + word captions + hook overlay) ──
-        final_video = build_short(scene_visuals, segments, script["scenes"],
-                                  hook=script.get("hook", ""))
-        thumb = generate_thumbnail(scene_visuals[0][0], script.get("hook", ""))
+        final_video = build_short(
+            scene_visuals, segments, script["scenes"],
+            out_path=str(artifact_dir / "final_video.mp4"),
+            hook=script.get("hook", ""), temp_dir=str(temp_dir))
+        thumb = generate_thumbnail(scene_visuals[0][0], script.get("hook", ""),
+                                   out_dir=str(artifact_dir))
         logger.info("🎬 Built %s + thumbnail", final_video)
 
         # ── 4b. 🛂 RELEASE GATE: har department ka independent guard ──
@@ -285,7 +320,7 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
                  "video_path": final_video, "thumb_path": thumb,
                  "package": packs.get(p), "publish_at": publish_times.get(p)}
              for p in gate_verdicts},
-            out_dir=OUTPUT_DIR)
+            out_dir=artifact_dir)
     except Exception as exc:
         logger.warning("gate payload save failed: %s", exc)
 
@@ -299,7 +334,8 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
         "arm_key": arm,
         "text_sha": text_sha(caption_text),
         "text": caption_text,
-        "source": script["source"], "run_id": run_id,
+        "source": script["source"], "claim_mode": script.get("claim_mode"),
+        "sources": script.get("sources", []), "run_id": run_id,
     })
 
     for p in platforms:
@@ -399,7 +435,7 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
     # owner can post manually in ~1 minute.
     try:
         import json as _json
-        with open(os.path.join("output", "seo_packages.json"), "w",
+        with open(artifact_dir / "seo_packages.json", "w",
                   encoding="utf-8") as fh:
             _json.dump({"title": script["title"], "hook": script.get("hook", ""),
                         "packages": packs}, fh, ensure_ascii=False, indent=2)
@@ -426,8 +462,9 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
                             "(views/retention) will decide this arm's fate.", p.upper())
     ml.save()
 
-    # ── 7. Monetization progress snapshot (non-destructive merge) ──
-    update_progress()
+    # ── 7. Monetization progress snapshot (live runs only) ──
+    if not dry_run:
+        update_progress()
 
     # ── V3.0: daily brief (human creator's morning notes) ──
     try:
@@ -441,17 +478,31 @@ def run_pipeline(platforms: list = None, dry_run: bool = False,
             _m = _json.loads(PROGRESS_PATH.read_text(encoding="utf-8"))
         except Exception:
             pass
-        write_daily_brief(ml_data=ml.data, journal=_j, monetization=_m)
-        logger.info("☕ Daily brief written — data/daily_brief.md")
+        if not dry_run:
+            write_daily_brief(ml_data=ml.data, journal=_j, monetization=_m)
+            logger.info("☕ Daily brief written — data/daily_brief.md")
     except Exception as exc:
         logger.warning("daily brief skipped: %s", exc)
 
-    journal.finish_run(run_id, "success",
+    published_count = sum(
+        1 for r in results.values() if r.get("ok") and not r.get("dry_run"))
+    blocked_count = sum(1 for r in results.values() if r.get("gate_blocked"))
+    skipped_count = sum(1 for r in results.values() if r.get("skipped"))
+    failed_count = sum(
+        1 for r in results.values()
+        if not r.get("ok") and not r.get("gate_blocked") and not r.get("skipped"))
+    success = bool(dry_run or published_count > 0)
+    run_status = "success" if success else "blocked"
+    journal.finish_run(run_id, run_status,
                        "; ".join(f"{p}:{'OK' if r.get('ok') else 'FAIL'}"
                                  for p, r in results.items()))
     elapsed = time.time() - start
-    logger.info("✅ DONE in %.0fs — %s", elapsed, script["title"])
-    return {"success": True, "run_id": run_id, "results": results,
+    logger.info("✅ DONE in %.0fs — %s (published=%d blocked=%d skipped=%d failed=%d)",
+                elapsed, script["title"], published_count, blocked_count,
+                skipped_count, failed_count)
+    return {"success": success, "run_id": run_id, "results": results,
+            "published_count": published_count, "blocked_count": blocked_count,
+            "skipped_count": skipped_count, "failed_count": failed_count,
             "title": script["title"], "elapsed_s": round(elapsed, 1)}
 
 
@@ -482,7 +533,8 @@ def main():
                 "stoic_echo": .75, "red_flag_checklist": .85}
         for _ in range(300):
             s = ls.choose_strategy()
-            ls.record_outcome(s["arm_key"], qual[s["hook_style"]] + _r.uniform(-.15, .15))
+            base_quality = qual.get(s["hook_style"], 0.60)
+            ls.record_outcome(s["arm_key"], base_quality + _r.uniform(-.15, .15))
         print("Top formulas after simulation:")
         for t in ls.best_formulas(6):
             print(f"  {t['pillar']:>16} / {t['hook_style']:<22} mean={t['mean']:.3f} n={t['n']}")
@@ -504,11 +556,12 @@ def main():
             sys.exit(2)
     except Exception as exc:
         logger.error("Pipeline crashed:\n%s", traceback.format_exc())
-        journal = RepairJournal()
-        journal.data.setdefault("current", {}).update(
-            {"status": "crashed",
-             "error": LearningSystem._sanitize_reason(str(exc))})
-        journal._write()
+        if not args.dry_run:
+            journal = RepairJournal()
+            journal.data.setdefault("current", {}).update(
+                {"status": "crashed",
+                 "error": LearningSystem._sanitize_reason(str(exc))})
+            journal._write()
         sys.exit(1)
 
 

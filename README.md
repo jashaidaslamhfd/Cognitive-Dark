@@ -297,3 +297,25 @@ scripts/fetch_metrics.py    — analytics sync → ML rewards
 
 ## Storage Optimization
 - Diagnostic dumps and audit logs are retained as 90-day GitHub Actions artifacts instead of inflating git repository history.
+
+
+## Operational safety controls
+
+Dry-runs are read-only with respect to production learning data. A preview writes only to `output/dry_runs/<run_id>/`, including the video, thumbnail, gate reports, gate payload, asset provenance ledger, and disposable journal. Live runs use `output/runs/<run_id>/`; skipped, gate-held, or credential-missing platforms are reported explicitly and do not count as a successful publication.
+
+Every generated run includes `asset_provenance.json`. Downloaded clips carry provider, provider ID, source URL, dimensions, and query metadata; procedural fallbacks are labeled separately. LLM scripts must carry a source ledger unless explicitly marked `fictional_composite`, and descriptions disclose either their sources or their illustrative status.
+
+Meta metrics are stored with explicit availability states. `unavailable`, `permission_denied`, and `error` are not treated as zero views and do not train or penalize the learning bandit. To protect live accounts, `GATE_MODE=warn` and `GATE_MODE=off` remain audit-only unless `ALLOW_UNSAFE_PUBLISH=1` is explicitly set. Destructive repair, boost, and social cleanup commands require their corresponding confirmation environment variable after the dry-run report has been reviewed.
+
+The standalone gate runner discovers the newest run-scoped payload automatically:
+
+```bash
+python scripts/run_gate.py --json
+```
+
+For a one-off preview:
+
+```bash
+GATE_MODE=strict python src/main.py --platforms instagram \
+  --topic "How to spot an urgent bank scam" --dry-run
+```

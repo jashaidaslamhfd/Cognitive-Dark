@@ -385,7 +385,7 @@ def main():
         index.append(f"---\n\n### Day {s['day']}: {s['title']}")
         index.append(f"**Pillar:** {s['pillar_name']}  ")
         index.append(f"**Hook (first 2s):** \"{s['hook']}\"  ")
-        index.append(f"**Target RPM:** $14 - $32 (Finance / Legal / Cyber Tier)  ")
+        index.append("**Target RPM:** $14 - $32 (Finance / Legal / Cyber Tier)  ")
         index.append(f"**Word count:** ~{sum(len(sc['caption'].split()) for sc in s['scenes'])} words\n")
         index.append("**Scenes (Forensic Arc):**\n")
         for i, sc in enumerate(p["scenes"], 1):

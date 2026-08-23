@@ -37,7 +37,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from config.settings import DATA_DIR
+from config.settings import DATA_DIR, META_MAX_HASHTAGS
 
 logger = logging.getLogger("human_layer")
 
@@ -125,8 +125,9 @@ def vary_hashtags(tags: list, platform: str, seed: int | None = None) -> list:
     if not tags:
         return tags
     rng = random.Random(seed) if seed is not None else random
-    max_h = {"youtube": 3, "facebook": 8, "instagram": 20}.get(platform, 8)
-    n = rng.randint(max(1, max_h - 3), max_h)
+    max_h = (META_MAX_HASHTAGS if platform in {"facebook", "instagram"}
+             else 3 if platform == "youtube" else 8)
+    n = rng.randint(max(1, max_h - 2), max_h)
     shuffled = tags[:]
     rng.shuffle(shuffled)
     return shuffled[:n]

@@ -12,7 +12,7 @@ permissions:
 # Same group as the daily pipeline → never runs while a video is being made,
 # and never races on git (single writer philosophy for data commits).
 concurrency:
-  group: cognitive-dark-pipeline
+  group: cognitive-dark-writer
   cancel-in-progress: false
 
 jobs:
@@ -25,15 +25,14 @@ jobs:
           python-version: "3.11"
 
       - name: Run Mission Control (read-only audit → health_report.md)
-        run: python scripts/mission_control.py || true
+        run: python scripts/mission_control.py
 
       - name: Commit report (conflict-safe)
         run: |
-          set -uo pipefail
+          set -euo pipefail
           git config user.name "Coercion Files Brain"
           git config user.email "brain@coercionfiles.ai"
-          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME" 2>/dev/null \
-            || git pull --no-rebase --autostash -X ours origin "$GITHUB_REF_NAME" || true
+          git pull --no-rebase --autostash origin "$GITHUB_REF_NAME"
           if grep -lE '^(<<<<<<<|>>>>>>>)' data/*.json data/*.jsonl 2>/dev/null; then
             echo "::error::Conflict markers in data/*.json — run scripts/repair_data_files.py --apply first."
             exit 1
@@ -45,4 +44,3 @@ jobs:
             git commit -m "🛰️ Mission Control: weekly health report [skip ci]"
             git push
           fi
-        continue-on-error: true

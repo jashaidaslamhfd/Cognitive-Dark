@@ -89,6 +89,13 @@ class ScriptGuard(BaseGuard):
         concept_hits = [c for c in CONCEPTS if c in low]
         # engagement CTA
         has_cta = any(w in low for w in CTA_WORDS)
+        claim_mode = str(script.get("claim_mode", "")).lower()
+        sources = script.get("sources") or []
+        factual_without_sources = (
+            script.get("source") in {"groq", "gemini"}
+            and claim_mode != "fictional_composite"
+            and not sources
+        )
         # hook ↔ scene-1 link (clickbait gap)
         scene1 = scenes[0].get("caption", "") if scenes else ""
         hook_link = _overlap(hook, scene1)
@@ -101,6 +108,7 @@ class ScriptGuard(BaseGuard):
             "scenes": len(scenes), "words": n_words, "est_s": est_s,
             "fluff_hits": fluff_hits, "anchors": anchor_hits,
             "concepts": concept_hits, "has_cta": has_cta,
+            "claim_mode": claim_mode, "source_count": len(sources),
             "hook_link": round(hook_link, 3), "shout": shout,
         }
 
@@ -119,6 +127,8 @@ class ScriptGuard(BaseGuard):
             issues.append("no named psychology concept (Milgram/Cialdini/... )")
         if not has_cta:
             issues.append("no engagement CTA (like/comment/follow/save)")
+        if factual_without_sources:
+            issues.append("factual LLM script has no source ledger")
         if scenes and hook_link < 0.15:
             issues.append(f"hook has no link to scene 1 (overlap {hook_link:.2f}) — clickbait gap")
         if shout:
