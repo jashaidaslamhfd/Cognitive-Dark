@@ -1,14 +1,25 @@
 # 📊 Coercion Files — Metrics Report
 
-*Updated: 2026-08-23T15:43:13.202496+00:00*
+*Updated: 2026-08-23T21:41:46.973286+00:00*
 
 **ML:** 192 arms · 6 videos · 8 attributed · 0 rewards · 4 penalties
 
-**Videos credited this run:** YT=3 · FB=3 · IG=2
+**Videos credited this run:** YT=2 · FB=2 · IG=2
 
 ## 🎯 REAL CTR (impressions-based, no guesses)
 
 _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aayega)_
+
+## Metric availability (zero ≠ unavailable)
+
+- **youtube   ** `_ol5ge90-u8` → views=legacy/unknown, impressions=legacy/unknown
+- **facebook  ** `1624303202734288` → views=legacy/unknown, impressions=legacy/unknown
+- **youtube   ** `-PGpiXpQyug` → views=legacy/unknown, impressions=legacy/unknown
+- **facebook  ** `1497157482100697` → views=unavailable, impressions=unavailable
+- **instagram ** `1809903010421176` → views=unavailable, impressions=measured
+- **youtube   ** `TNVE_xhmWt4` → views=legacy/unknown, impressions=legacy/unknown
+- **facebook  ** `1119309037107827` → views=unavailable, impressions=unavailable
+- **instagram ** `1787772884752743` → views=unavailable, impressions=measured
 
 **Best formulas:** con_artists/warning (1.5), con_artists/case_file (1.35), mass_psychology/chilling_fact (1.25), interrogation/warning (1.25), cults/warning (1.25)
 
@@ -27,8 +38,8 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
       "subs": 33,
       "shorts_views": 333333
     },
-    "views": 3193,
-    "videos": 68,
+    "views": 3197,
+    "videos": 70,
     "last_growth": 0
   },
   "facebook": {
@@ -57,7 +68,7 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
     },
     "last_growth": 0
   },
-  "last_updated": "2026-08-23T15:42:57.522951+00:00",
+  "last_updated": "2026-08-23T21:41:28.825147+00:00",
   "milestones": {
     "youtube": {
       "milestone": "YT Tier-1 (fan funding)",

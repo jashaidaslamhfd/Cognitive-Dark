@@ -2088,7 +2088,7 @@
         "data_complete": false
       },
       "credited_at": "2026-08-10T06:17:37.204584+00:00",
-      "refresh_count": 47
+      "refresh_count": 48
     },
     "1497157482100697": {
       "arm_key": "cults::red_flag::morning",
@@ -2103,7 +2103,16 @@
         "shares": 0,
         "watch_time_seconds": 112,
         "duration_seconds": 35.6,
-        "platform": "facebook"
+        "platform": "facebook",
+        "metric_status": {
+          "post_video_views": "unavailable",
+          "post_video_view_time": "measured",
+          "post_impressions": "unavailable",
+          "post_video_avg_time_watched": "measured",
+          "post_video_complete_views_organic": "unavailable"
+        },
+        "views_status": "unavailable",
+        "impressions_status": "unavailable"
       },
       "reward": 0.105,
       "breakdown": {
@@ -2121,7 +2130,8 @@
         "data_complete": false
       },
       "credited_at": "2026-08-13T18:38:25.029506+00:00",
-      "refresh_count": 45
+      "refresh_count": 45,
+      "metrics_status": "unavailable"
     },
     "18099030104211760": {
       "arm_key": "coercive_control::warning::morning",
@@ -2136,7 +2146,19 @@
         "shares": 0,
         "saves": 1,
         "retention_estimated": true,
-        "platform": "instagram"
+        "platform": "instagram",
+        "metric_status": {
+          "plays": "unavailable",
+          "video_views": "unavailable",
+          "impressions": "unavailable",
+          "reach": "measured",
+          "saved": "measured",
+          "shares": "measured",
+          "likes": "measured",
+          "comments": "measured"
+        },
+        "views_status": "unavailable",
+        "impressions_status": "measured"
       },
       "reward": 0.705,
       "breakdown": {
@@ -2154,7 +2176,8 @@
         "data_complete": false
       },
       "credited_at": "2026-08-13T18:38:25.624152+00:00",
-      "refresh_count": 45
+      "refresh_count": 45,
+      "metrics_status": "unavailable"
     },
     "TNVE_xhmWt4": {
       "arm_key": "brainwashing_myths::plot_twist::afternoon",
@@ -2186,7 +2209,7 @@
         "data_complete": false
       },
       "credited_at": "2026-08-13T18:41:39.305407+00:00",
-      "refresh_count": 44
+      "refresh_count": 45
     },
     "1119309037107827": {
       "arm_key": "brainwashing_myths::plot_twist::afternoon",
@@ -2201,7 +2224,16 @@
         "shares": 0,
         "watch_time_seconds": 1156,
         "duration_seconds": 49.4,
-        "platform": "facebook"
+        "platform": "facebook",
+        "metric_status": {
+          "post_video_views": "unavailable",
+          "post_video_view_time": "measured",
+          "post_impressions": "unavailable",
+          "post_video_avg_time_watched": "measured",
+          "post_video_complete_views_organic": "unavailable"
+        },
+        "views_status": "unavailable",
+        "impressions_status": "unavailable"
       },
       "reward": 0.705,
       "breakdown": {
@@ -2219,7 +2251,8 @@
         "data_complete": false
       },
       "credited_at": "2026-08-13T18:41:40.812847+00:00",
-      "refresh_count": 44
+      "refresh_count": 44,
+      "metrics_status": "unavailable"
     },
     "17877728847527433": {
       "arm_key": "brainwashing_myths::plot_twist::afternoon",
@@ -2234,7 +2267,19 @@
         "shares": 0,
         "saves": 0,
         "retention_estimated": true,
-        "platform": "instagram"
+        "platform": "instagram",
+        "metric_status": {
+          "plays": "unavailable",
+          "video_views": "unavailable",
+          "impressions": "unavailable",
+          "reach": "measured",
+          "saved": "measured",
+          "shares": "measured",
+          "likes": "measured",
+          "comments": "measured"
+        },
+        "views_status": "unavailable",
+        "impressions_status": "measured"
       },
       "reward": 0.105,
       "breakdown": {
@@ -2252,7 +2297,8 @@
         "data_complete": false
       },
       "credited_at": "2026-08-13T18:41:44.907896+00:00",
-      "refresh_count": 44
+      "refresh_count": 44,
+      "metrics_status": "unavailable"
     }
   },
   "post_log": {

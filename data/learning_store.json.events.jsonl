@@ -391,3 +391,9 @@
 {"ts": "2026-08-23T15:43:04.920957+00:00", "type": "credit_refresh", "video_id": "1119309037107827", "reward": 0.705}
 {"ts": "2026-08-23T15:43:09.449450+00:00", "type": "credit_refresh", "video_id": "18099030104211760", "reward": 0.705}
 {"ts": "2026-08-23T15:43:13.194562+00:00", "type": "credit_refresh", "video_id": "17877728847527433", "reward": 0.105}
+{"ts": "2026-08-23T21:41:29.869205+00:00", "type": "credit_refresh", "video_id": "-PGpiXpQyug", "reward": 0.324}
+{"ts": "2026-08-23T21:41:30.131464+00:00", "type": "credit_refresh", "video_id": "TNVE_xhmWt4", "reward": 0.105}
+{"ts": "2026-08-23T21:41:33.197755+00:00", "type": "metrics_unavailable", "video_id": "1497157482100697", "status": "unavailable", "platform": "facebook"}
+{"ts": "2026-08-23T21:41:36.333337+00:00", "type": "metrics_unavailable", "video_id": "1119309037107827", "status": "unavailable", "platform": "facebook"}
+{"ts": "2026-08-23T21:41:42.195140+00:00", "type": "metrics_unavailable", "video_id": "18099030104211760", "status": "unavailable", "platform": "instagram"}
+{"ts": "2026-08-23T21:41:46.833907+00:00", "type": "metrics_unavailable", "video_id": "17877728847527433", "status": "unavailable", "platform": "instagram"}
