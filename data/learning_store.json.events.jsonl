@@ -375,3 +375,11 @@
 {"ts": "2026-08-23T04:07:07.265429+00:00", "type": "credit_refresh", "video_id": "1119309037107827", "reward": 0.705}
 {"ts": "2026-08-23T04:07:11.243796+00:00", "type": "credit_refresh", "video_id": "18099030104211760", "reward": 0.705}
 {"ts": "2026-08-23T04:07:16.060316+00:00", "type": "credit_refresh", "video_id": "17877728847527433", "reward": 0.105}
+{"ts": "2026-08-23T09:49:04.960592+00:00", "type": "credit_refresh", "video_id": "_ol5ge90-u8", "reward": 0.32}
+{"ts": "2026-08-23T09:49:05.141287+00:00", "type": "credit_refresh", "video_id": "-PGpiXpQyug", "reward": 0.324}
+{"ts": "2026-08-23T09:49:05.320456+00:00", "type": "credit_refresh", "video_id": "TNVE_xhmWt4", "reward": 0.105}
+{"ts": "2026-08-23T09:49:08.721148+00:00", "type": "credit_refresh", "video_id": "1624303202734288", "reward": 0.105}
+{"ts": "2026-08-23T09:49:12.124948+00:00", "type": "credit_refresh", "video_id": "1497157482100697", "reward": 0.105}
+{"ts": "2026-08-23T09:49:15.763248+00:00", "type": "credit_refresh", "video_id": "1119309037107827", "reward": 0.705}
+{"ts": "2026-08-23T09:49:21.450956+00:00", "type": "credit_refresh", "video_id": "18099030104211760", "reward": 0.705}
+{"ts": "2026-08-23T09:49:26.852162+00:00", "type": "credit_refresh", "video_id": "17877728847527433", "reward": 0.105}
