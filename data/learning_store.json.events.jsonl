@@ -409,3 +409,6 @@
 {"ts": "2026-08-24T16:01:13.892218+00:00", "type": "credit_refresh", "video_id": "TNVE_xhmWt4", "reward": 0.105}
 {"ts": "2026-08-24T16:01:17.797517+00:00", "type": "metrics_unavailable", "video_id": "1119309037107827", "status": "unavailable", "platform": "facebook"}
 {"ts": "2026-08-24T16:01:23.778160+00:00", "type": "metrics_unavailable", "video_id": "17877728847527433", "status": "unavailable", "platform": "instagram"}
+{"ts": "2026-08-24T21:50:17.349181+00:00", "type": "credit_refresh", "video_id": "TNVE_xhmWt4", "reward": 0.105}
+{"ts": "2026-08-24T21:50:19.323130+00:00", "type": "metrics_unavailable", "video_id": "1119309037107827", "status": "unavailable", "platform": "facebook"}
+{"ts": "2026-08-24T21:50:22.237571+00:00", "type": "metrics_unavailable", "video_id": "17877728847527433", "status": "unavailable", "platform": "instagram"}
