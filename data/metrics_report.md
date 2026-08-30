@@ -1,6 +1,6 @@
 # 📊 Coercion Files — Metrics Report
 
-*Updated: 2026-08-30T18:43:59.192267+00:00*
+*Updated: 2026-08-30T23:37:47.841388+00:00*
 
 **ML:** 192 arms · 6 videos · 8 attributed · 0 rewards · 4 penalties
 
@@ -54,7 +54,7 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
       "followers": 149,
       "minutes": 2000
     },
-    "last_growth": -1
+    "last_growth": 0
   },
   "instagram": {
     "followers": 3,
@@ -68,7 +68,7 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
     },
     "last_growth": 0
   },
-  "last_updated": "2026-08-30T18:43:59.185960+00:00",
+  "last_updated": "2026-08-30T23:37:47.834827+00:00",
   "milestones": {
     "youtube": {
       "milestone": "YT Tier-1 (fan funding)",
