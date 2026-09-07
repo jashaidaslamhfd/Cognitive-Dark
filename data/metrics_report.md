@@ -1,6 +1,6 @@
 # 📊 Coercion Files — Metrics Report
 
-*Updated: 2026-09-06T22:56:24.945065+00:00*
+*Updated: 2026-09-07T08:30:12.848720+00:00*
 
 **ML:** 192 arms · 6 videos · 8 attributed · 0 rewards · 4 penalties
 
@@ -26,11 +26,11 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
 ```json
 {
   "youtube": {
-    "subs": 5,
+    "subs": 6,
     "watch_hours": 0,
     "shorts_views_90d": 0,
     "pct": {
-      "subs": 0.5,
+      "subs": 0.6,
       "watch_hours": 0.0,
       "shorts_views": 0.0
     },
@@ -38,12 +38,12 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
       "subs": 33,
       "shorts_views": 333333
     },
-    "views": 3299,
+    "views": 3300,
     "videos": 126,
-    "last_growth": 0
+    "last_growth": 1
   },
   "facebook": {
-    "followers": 518,
+    "followers": 519,
     "minutes_60d": 0,
     "uploads_30d": 0,
     "pct": {
@@ -54,7 +54,7 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
       "followers": 149,
       "minutes": 2000
     },
-    "last_growth": 0
+    "last_growth": 1
   },
   "instagram": {
     "followers": 4,
@@ -68,16 +68,16 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
     },
     "last_growth": 0
   },
-  "last_updated": "2026-09-06T22:56:24.937151+00:00",
+  "last_updated": "2026-09-07T08:30:12.842269+00:00",
   "milestones": {
     "youtube": {
       "milestone": "YT Tier-1 (fan funding)",
-      "pct": 1.0,
+      "pct": 1.2,
       "needs": {
         "subs": 500
       },
       "have": {
-        "subs": 5
+        "subs": 6
       }
     },
     "facebook": {
@@ -89,7 +89,7 @@ _(abhi koi video impressions ke saath credit nahi hui — CTR agle run mein aaye
         "uploads_30d": 5
       },
       "have": {
-        "followers": 518,
+        "followers": 519,
         "minutes_60d": 0,
         "uploads_30d": 0
       }
