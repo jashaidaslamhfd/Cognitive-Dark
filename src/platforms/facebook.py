@@ -60,11 +60,10 @@ class FacebookUploader(BasePlatform):
 
     def _reels_resumable(self, page_id: str, token: str, video_path: str,
                          description: str) -> dict:
-        """Proper Page-Reels flow (Graph API): start → transfer chunks → finish.
+        """Proper Page-Reels flow (Graph API): start -> binary upload to upload_url -> finish.
 
-        V2.1.2: /video_reels REQUIRES this upload_phase handshake — a plain
-        multipart POST fails with '(#100) The parameter upload_phase is
-        required'. Reels don't support scheduling, so they publish immediately.
+        Official Graph API /video_reels uses ONLY {START, FINISH} upload_phase.
+        Direct upload occurs against the returned upload_url.
         """
         url = f"{GRAPH}/{API_VERSION}/{page_id}/video_reels"
         size = os.path.getsize(video_path)
@@ -76,32 +75,44 @@ class FacebookUploader(BasePlatform):
         if r.status_code >= 400:
             raise RuntimeError(f"reels start HTTP {r.status_code}: {r.text[:400]}")
         sess = r.json()
-        session_id = sess.get("upload_session_id")
+        video_id = sess.get("video_id") or sess.get("id")
+        upload_url = sess.get("upload_url")
 
-        # 2) TRANSFER — Graph now requires an explicit transfer step with the
-        # file and byte-range offsets BEFORE finish. Sending the file inside
-        # FINISH fails with (#100) "Missing parameter: video_id".
+        # 2) UPLOAD BINARY — direct POST to upload_url
         with open(video_path, "rb") as fh:
-            r = requests.post(
-                url,
-                data={"access_token": token, "upload_phase": "transfer",
-                      "upload_session_id": session_id,
-                      "start_offset": "0",
-                      "end_offset": str(size)},
-                files={"video_file_chunk": (os.path.basename(video_path), fh,
-                                           "video/mp4")},
-                timeout=600)
-        if r.status_code >= 400:
-            raise RuntimeError(f"reels transfer HTTP {r.status_code}: {r.text[:400]}")
+            video_bytes = fh.read()
 
-        # 3) FINISH — finalize the session (no file, session id only);
-        # description/title attach to the reel at finish time.
-        r = requests.post(
-            url,
-            data={"access_token": token, "upload_phase": "finish",
-                  "upload_session_id": session_id,
-                  "description": description[:6300]},
-            timeout=600)
+        if upload_url:
+            headers = {
+                "Authorization": f"OAuth {token}",
+                "offset": "0",
+                "file_size": str(size),
+                "Content-Length": str(size),
+                "Content-Type": "application/octet-stream",
+            }
+            r = requests.post(upload_url, data=video_bytes, headers=headers, timeout=600)
+            if r.status_code >= 400:
+                raise RuntimeError(f"reels binary upload HTTP {r.status_code}: {r.text[:400]}")
+        else:
+            logger.warning("No upload_url in reels start response (%s), falling back to /videos", sess)
+            return self._post(f"{GRAPH}/{API_VERSION}/{page_id}/videos",
+                              {"access_token": token, "description": description[:6300]},
+                              video_path)
+
+        # 3) FINISH — finalize the reel session
+        finish_data = {
+            "access_token": token,
+            "upload_phase": "finish",
+            "video_state": "PUBLISHED",
+            "description": description[:6300],
+        }
+        if video_id:
+            finish_data["video_id"] = video_id
+        upload_session_id = sess.get("upload_session_id")
+        if upload_session_id:
+            finish_data["upload_session_id"] = upload_session_id
+
+        r = requests.post(url, data=finish_data, timeout=600)
         if r.status_code >= 400:
             raise RuntimeError(f"reels finish HTTP {r.status_code}: {r.text[:400]}")
         return r.json()

@@ -52,3 +52,94 @@ def test_instagram_duration_ms_fallback(monkeypatch):
     # Force ffprobe failure path -> safe default without raising
     monkeypatch.setattr(ig.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
     assert ig._duration_ms("missing.mp4") == 60_000
+
+
+def test_facebook_reels_handshake_phases(monkeypatch, tmp_path):
+    """Verify Facebook Reels only uses valid {start, finish} phases and direct upload_url."""
+    import requests
+
+    from platforms.facebook import FacebookUploader
+
+    fb = FacebookUploader()
+    test_video = tmp_path / "test.mp4"
+    test_video.write_bytes(b"dummy video binary content")
+
+    calls = []
+
+    class MockResponse:
+        def __init__(self, json_data, status_code=200):
+            self._json = json_data
+            self.status_code = status_code
+            self.text = json.dumps(json_data)
+
+        def json(self):
+            return self._json
+
+        def raise_for_status(self):
+            pass
+
+    def mock_post(url, *args, **kwargs):
+        data = kwargs.get("data")
+        headers = kwargs.get("headers")
+        calls.append({"url": url, "data": data, "headers": headers})
+        if "video_reels" in url:
+            if isinstance(data, dict) and data.get("upload_phase") == "start":
+                return MockResponse({"video_id": "vid123", "upload_url": "https://rupload.facebook.com/mock-upload"})
+            elif isinstance(data, dict) and data.get("upload_phase") == "finish":
+                return MockResponse({"success": True, "id": "vid123"})
+        if "rupload.facebook.com" in url:
+            return MockResponse({"success": True})
+        return MockResponse({"id": "vid123"})
+
+    monkeypatch.setattr(requests, "post", mock_post)
+    res = fb._reels_resumable("page1", "token1", str(test_video), "test caption")
+    assert res.get("success") is True
+
+    # Assert no invalid "transfer" phase was called
+    for call in calls:
+        if isinstance(call["data"], dict):
+            phase = call["data"].get("upload_phase")
+            assert phase in ("start", "finish", None), f"Invalid upload_phase {phase}"
+
+
+def test_instagram_resumable_headers(monkeypatch, tmp_path):
+    """Verify Instagram resumable upload sends octet-stream and Content-Length."""
+    import requests
+
+    from platforms.instagram import InstagramUploader
+
+    ig = InstagramUploader()
+    ig.token = "test-token"
+    ig.ig_id = "test-ig-id"
+    test_video = tmp_path / "test.mp4"
+    test_video.write_bytes(b"1234567890")
+
+    calls = []
+
+    class MockResponse:
+        def __init__(self, json_data, status_code=200):
+            self._json = json_data
+            self.status_code = status_code
+            self.text = json.dumps(json_data)
+
+        def json(self):
+            return self._json
+
+        def raise_for_status(self):
+            pass
+
+    def mock_post(url, *args, **kwargs):
+        headers = kwargs.get("headers")
+        calls.append({"url": url, "headers": headers, "data": kwargs.get("data")})
+        if "/media" in url:
+            return MockResponse({"id": "container_123", "uri": "https://rupload.facebook.com/mock-ig-upload"})
+        return MockResponse({"result": "ok"})
+
+    monkeypatch.setattr(requests, "post", mock_post)
+    cid = ig._upload_resumable(str(test_video), "my caption")
+    assert cid == "container_123"
+
+    rupload_call = next(c for c in calls if "mock-ig-upload" in c["url"])
+    assert rupload_call["headers"]["Content-Type"] == "application/octet-stream"
+    assert rupload_call["headers"]["Content-Length"] == "10"
+    assert rupload_call["headers"]["file_size"] == "10"

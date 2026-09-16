@@ -17,7 +17,6 @@ an access token with instagram_content_publish + instagram_basic.
 """
 
 import logging
-import mimetypes
 import os
 import subprocess
 import time
@@ -33,7 +32,7 @@ logger = logging.getLogger("instagram")
 # run died with 'Cannot parse access token'). Resumable uploads move to the
 # facebook rupload host accordingly.
 GRAPH = "https://graph.facebook.com"
-API_VERSION = "v25.0"
+API_VERSION = os.environ.get("META_API_VERSION", "v21.0")
 RUP_URL = "https://rupload.facebook.com/ig-api-upload"
 
 
@@ -93,23 +92,15 @@ class InstagramUploader(BasePlatform):
         return media_id
 
     def _upload_resumable(self, video_path: str, caption: str = "") -> str:
-        """Chunked direct upload (no public hosting needed)."""
+        """Resumable direct binary upload to Meta Instagram rupload host."""
         size = os.path.getsize(video_path)
-        # V2.1 FIX: video_length must be duration in MILLISECONDS (V2 sent the
-        # file size in bytes → container rejected / wrong metadata), and the
-        # caption was dropped entirely on this path (Reels published silent of text).
         payload = {
             "media_type": "REELS",
             "upload_type": "resumable",
-            "video_length": str(_duration_ms(video_path)),
             "share_to_feed": "true",
         }
         if caption:
             payload["caption"] = caption[:2200]
-        # Create the container here so we get the EXACT rupload URI the API
-        # returns (v26.0+). Building `{RUP_URL}/{API_VERSION}/{id}` ourselves
-        # hit a 404 — Meta versions the upload host independently of the
-        # Graph API version (observed: container uri = .../ig-api-upload/v26.0).
         url = f"{GRAPH}/{API_VERSION}/{self.ig_id}/media"
         r = requests.post(url, params={"access_token": self.token}, data=payload,
                           headers=self._headers(), timeout=120)
@@ -120,17 +111,20 @@ class InstagramUploader(BasePlatform):
         if not container:
             raise RuntimeError(f"no container id: {data}")
         upload_uri = data.get("uri") or f"{RUP_URL}/{API_VERSION}/{container}"
-        mime = mimetypes.guess_type(video_path)[0] or "video/mp4"
-        # Official IG resumable protocol: POST the raw file to the returned
-        # URI with OAuth auth, offset, and file_size. Bearer on this endpoint
-        # can produce a misleading 404 even when the Graph token is valid.
+
+        # Read full video bytes so requests sends Content-Length and never uses
+        # Transfer-Encoding: chunked (which Meta rupload explicitly rejects with HTTP 400).
         with open(video_path, "rb") as fh:
-            r = requests.post(
-                upload_uri, data=fh,
-                headers={"Authorization": f"OAuth {self.token}",
-                         "offset": "0",
-                         "file_size": str(size),
-                         "Content-Type": mime}, timeout=1800)
+            video_bytes = fh.read()
+
+        headers = {
+            "Authorization": f"OAuth {self.token}",
+            "offset": "0",
+            "file_size": str(size),
+            "Content-Length": str(size),
+            "Content-Type": "application/octet-stream",
+        }
+        r = requests.post(upload_uri, data=video_bytes, headers=headers, timeout=1800)
         if r.status_code >= 400:
             raise RuntimeError(f"IG rupload HTTP {r.status_code}: {r.text[:400]}")
         return container

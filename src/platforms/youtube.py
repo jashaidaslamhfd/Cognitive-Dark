@@ -94,6 +94,10 @@ class YouTubeUploader(BasePlatform):
                     fh.write(creds.to_json())
 
             youtube = build("youtube", "v3", credentials=creds)
+            privacy_status = os.environ.get("YT_PRIVACY_STATUS", "public").strip().lower()
+            if privacy_status not in ("public", "private", "unlisted"):
+                privacy_status = "public"
+
             body = {
                 "snippet": {
                     "title": pkg["title"][:100],
@@ -106,11 +110,12 @@ class YouTubeUploader(BasePlatform):
                     "defaultAudioLanguage": "en-US",
                 },
                 "status": {
-                    "privacyStatus": "private",
+                    "privacyStatus": privacy_status,
                     "selfDeclaredMadeForKids": False,
                 },
             }
-            if publish_at:
+            # Only scheduled private videos can use publishAt; public videos go live immediately
+            if publish_at and privacy_status == "private":
                 # V2.1 FIX: publish_at is tz-AWARE (scheduler) → compare against
                 # tz-aware now. V2 compared aware-vs-naive → TypeError on EVERY run.
                 pa = publish_at

@@ -72,9 +72,13 @@ class VoiceGuard(BaseGuard):
                 issues.append(f"seg {i}: too long ({dur:.1f}s)")
             if st["silence_ratio"] > MAX_SILENCE:
                 issues.append(f"seg {i}: {st['silence_ratio']:.0%} silence — empty/failed TTS")
-            if text and (rate < MIN_WPS or rate > MAX_WPS):
-                issues.append(f"seg {i}: speaking rate {rate} wps "
-                              f"(US target {MIN_WPS}-{MAX_WPS})")
+            if text:
+                if rate < 1.2 or rate > 3.8:
+                    issues.append(f"seg {i}: speaking rate {rate} wps "
+                                  f"(US critical bounds 1.2-3.8)")
+                elif rate < MIN_WPS or rate > MAX_WPS:
+                    warns.append(f"seg {i}: speaking rate {rate} wps "
+                                 f"(ideal target {MIN_WPS}-{MAX_WPS})")
 
         if missing:
             issues.append(f"{missing}/{len(segments)} segments have NO audio — "

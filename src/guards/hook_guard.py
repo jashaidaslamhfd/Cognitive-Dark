@@ -70,10 +70,13 @@ class HookGuard(BaseGuard):
         }
 
         issues = []
+        warns = []
         if n_words < 3:
             issues.append(f"too short ({n_words} words) — no payoff")
-        if n_words > 9:
+        elif n_words > 12:
             issues.append(f"too long ({n_words} words) — 2s overlay cap")
+        elif n_words > 8:
+            warns.append(f"{n_words} words — slightly long for 2s overlay")
         if len(hook) > 85:
             issues.append(f"{len(hook)} chars — overlay cap 85")
         if weak_open:

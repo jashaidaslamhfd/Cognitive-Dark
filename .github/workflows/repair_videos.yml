@@ -64,6 +64,8 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+          YT_PRIVACY_STATUS: ${{ secrets.YT_PRIVACY_STATUS || 'public' }}
+          META_API_VERSION: "v21.0"
           # Facebook
           FB_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID || secrets.FB_PAGE_ID }}
           FB_ACCESS_TOKEN: ${{ secrets.FACEBOOK_ACCESS_TOKEN || secrets.FB_ACCESS_TOKEN }}
