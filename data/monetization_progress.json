@@ -13,11 +13,11 @@
       "shorts_views": 333333
     },
     "views": 3728,
-    "videos": 315,
+    "videos": 316,
     "last_growth": 0
   },
   "facebook": {
-    "followers": 530,
+    "followers": 529,
     "minutes_60d": 0,
     "uploads_30d": 0,
     "pct": {
@@ -28,7 +28,7 @@
       "followers": 149,
       "minutes": 2000
     },
-    "last_growth": 0
+    "last_growth": -1
   },
   "instagram": {
     "followers": 4,
@@ -42,7 +42,7 @@
     },
     "last_growth": 0
   },
-  "last_updated": "2026-10-24T18:15:34.380916+00:00",
+  "last_updated": "2026-10-24T23:26:32.471691+00:00",
   "milestones": {
     "youtube": {
       "milestone": "YT Tier-1 (fan funding)",
@@ -63,7 +63,7 @@
         "uploads_30d": 5
       },
       "have": {
-        "followers": 530,
+        "followers": 529,
         "minutes_60d": 0,
         "uploads_30d": 0
       }
